@@ -1,3 +1,5 @@
+const { ProxyAgent, fetch: proxyFetch } = require('undici');
+
 module.exports = async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -13,15 +15,26 @@ module.exports = async function handler(req, res) {
         }
         if (!body || typeof body !== 'object') body = {};
 
-        const apiUrl = process.env.STATS_API_URL;
-        const response = await fetch(`${apiUrl}/api/v1/lottery-stats`, {
+        const apiUrl    = process.env.STATS_API_URL;
+        const apiKey    = process.env.STATS_API_KEY;
+        const proxyUrl  = process.env.PROXY_URL;
+
+        const fetchOptions = {
             method: 'POST',
             headers: {
-                'X-Api-Key': process.env.STATS_API_KEY,
+                'X-Api-Key': apiKey,
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify(body),
-        });
+        };
+
+        let response;
+        if (proxyUrl) {
+            const dispatcher = new ProxyAgent(proxyUrl);
+            response = await proxyFetch(`${apiUrl}/api/v1/lottery-stats`, { ...fetchOptions, dispatcher });
+        } else {
+            response = await fetch(`${apiUrl}/api/v1/lottery-stats`, fetchOptions);
+        }
 
         const text = await response.text();
         let data;
