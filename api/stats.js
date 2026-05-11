@@ -7,15 +7,27 @@ module.exports = async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
     try {
+        const body = req.body || {};
         const response = await fetch('https://stats-crawler.up.railway.app/api/v1/lottery-stats', {
             method: 'POST',
             headers: {
                 'X-Api-Key': process.env.STATS_API_KEY,
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify(req.body),
+            body: JSON.stringify(body),
         });
-        const data = await response.json();
+
+        const text = await response.text();
+        let data;
+        try {
+            data = JSON.parse(text);
+        } catch (e) {
+            return res.status(500).json({
+                error: 'stats-crawler 回傳非 JSON',
+                status: response.status,
+                body: text.slice(0, 300),
+            });
+        }
         res.status(200).json(data);
     } catch (err) {
         res.status(500).json({ error: err.message });
