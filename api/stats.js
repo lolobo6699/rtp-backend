@@ -7,7 +7,13 @@ module.exports = async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
     try {
-        const body = req.body || {};
+        // Vercel 有時不自動 parse body，手動處理
+        let body = req.body;
+        if (typeof body === 'string') {
+            try { body = JSON.parse(body); } catch (e) { body = {}; }
+        }
+        if (!body || typeof body !== 'object') body = {};
+
         const response = await fetch('https://stats-crawler.up.railway.app/api/v1/lottery-stats', {
             method: 'POST',
             headers: {
@@ -25,7 +31,8 @@ module.exports = async function handler(req, res) {
             return res.status(500).json({
                 error: 'stats-crawler 回傳非 JSON',
                 status: response.status,
-                body: text.slice(0, 300),
+                sentBody: body,
+                responseBody: text.slice(0, 300),
             });
         }
         res.status(200).json(data);
