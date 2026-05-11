@@ -20,13 +20,15 @@ module.exports = async function handler(req, res) {
         const apiKey   = process.env.STATS_API_KEY;
         const proxyUrl = process.env.PROXY_URL;
 
+        const requestBody = JSON.stringify(body);
+
         const fetchOptions = {
             method: 'POST',
             headers: {
                 'X-Api-Key': apiKey,
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify(body),
+            body: requestBody,
         };
 
         let response;
@@ -44,12 +46,17 @@ module.exports = async function handler(req, res) {
         } catch (e) {
             return res.status(500).json({
                 error: 'API 回傳非 JSON',
-                status: response.status,
-                body: text.slice(0, 300),
+                httpStatus: response.status,
+                rawBody: text.slice(0, 500),
+                sentBody: requestBody,
+                proxyUsed: !!proxyUrl,
             });
         }
         res.status(200).json(data);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(500).json({
+            error: err.message,
+            stack: err.stack ? err.stack.slice(0, 300) : null,
+        });
     }
 };
