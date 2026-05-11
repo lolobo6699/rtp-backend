@@ -2,6 +2,16 @@ const { ProxyAgent, fetch: proxyFetch } = require('undici');
 
 const STATS_API = 'https://stats-crawler.up.railway.app';
 
+// 從 request stream 手動讀取原始 body
+function readRawBody(req) {
+    return new Promise((resolve, reject) => {
+        let data = '';
+        req.on('data', chunk => { data += chunk; });
+        req.on('end', () => resolve(data));
+        req.on('error', reject);
+    });
+}
+
 module.exports = async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -11,11 +21,22 @@ module.exports = async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
     try {
-        let body = req.body;
-        if (typeof body === 'string') {
-            try { body = JSON.parse(body); } catch (e) { body = {}; }
+        // 先嘗試 req.body（Vercel 自動解析），失敗則手動讀 stream
+        let body;
+        try {
+            body = req.body;
+        } catch (e) {
+            body = null;
         }
-        if (!body || typeof body !== 'object') body = {};
+
+        if (!body || typeof body !== 'object') {
+            try {
+                const raw = typeof body === 'string' ? body : await readRawBody(req);
+                body = JSON.parse(raw);
+            } catch (e) {
+                body = {};
+            }
+        }
 
         const apiKey   = process.env.STATS_API_KEY;
         const proxyUrl = process.env.PROXY_URL;
@@ -48,8 +69,6 @@ module.exports = async function handler(req, res) {
                 error: 'API 回傳非 JSON',
                 httpStatus: response.status,
                 rawBody: text.slice(0, 500),
-                sentBody: requestBody,
-                proxyUsed: !!proxyUrl,
             });
         }
         res.status(200).json(data);
