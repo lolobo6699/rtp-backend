@@ -1,6 +1,6 @@
 const { ProxyAgent, fetch: proxyFetch } = require('undici');
 
-const STATS_API      = 'https://stats-crawler.up.railway.app';
+const STATS_API      = process.env.STATS_API_URL;
 const ALLOWED_ORIGIN = 'https://rtp-wffq.vercel.app';
 
 // 從 request stream 手動讀取原始 body
