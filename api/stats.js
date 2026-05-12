@@ -1,7 +1,7 @@
 const { ProxyAgent, fetch: proxyFetch } = require('undici');
 
-const STATS_API     = 'https://stats-crawler.up.railway.app';
-const ALLOWED_ORIGIN = 'https://lolobo6699.github.io';
+const STATS_API      = 'https://stats-crawler.up.railway.app';
+const ALLOWED_ORIGIN = 'https://rtp-wffq.vercel.app';
 
 // 從 request stream 手動讀取原始 body
 function readRawBody(req) {
@@ -16,7 +16,7 @@ function readRawBody(req) {
 module.exports = async function handler(req, res) {
     const origin = req.headers['origin'] || '';
 
-    // CORS 白名單：只允許 GitHub Pages
+    // CORS 白名單：只允許 Vercel 前端（同源請求無 origin header 也放行）
     if (origin && origin !== ALLOWED_ORIGIN) {
         return res.status(403).json({ error: 'Forbidden: origin not allowed' });
     }
@@ -30,34 +30,23 @@ module.exports = async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
     try {
-        // 先嘗試 req.body（Vercel 自動解析），失敗則手動讀 stream
         let body;
-        try {
-            body = req.body;
-        } catch (e) {
-            body = null;
-        }
+        try { body = req.body; } catch (e) { body = null; }
 
         if (!body || typeof body !== 'object') {
             try {
                 const raw = typeof body === 'string' ? body : await readRawBody(req);
                 body = JSON.parse(raw);
-            } catch (e) {
-                body = {};
-            }
+            } catch (e) { body = {}; }
         }
 
         const apiKey   = process.env.STATS_API_KEY;
         const proxyUrl = process.env.PROXY_URL;
-
         const requestBody = JSON.stringify(body);
 
         const fetchOptions = {
             method: 'POST',
-            headers: {
-                'X-Api-Key': apiKey,
-                'Content-Type': 'application/json',
-            },
+            headers: { 'X-Api-Key': apiKey, 'Content-Type': 'application/json' },
             body: requestBody,
         };
 

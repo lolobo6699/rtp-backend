@@ -1,6 +1,6 @@
-const ALLOWED_ORIGIN = 'https://lolobo6699.github.io';
+const ALLOWED_ORIGIN = 'https://rtp-wffq.vercel.app';
 
-// 簡易 Rate Limiter：每個 IP 每分鐘最多 5 次
+// Rate Limiter: 每個 IP 每分鐘最多 5 次
 const rateLimitMap = new Map();
 const RATE_LIMIT   = 5;
 const WINDOW_MS    = 60 * 1000;
@@ -23,7 +23,7 @@ function checkRateLimit(ip) {
 module.exports = async function handler(req, res) {
     const origin = req.headers['origin'] || '';
 
-    // CORS 白名單：只允許 GitHub Pages
+    // CORS 白名單：只允許 Vercel 前端
     if (origin && origin !== ALLOWED_ORIGIN) {
         return res.status(403).json({ error: 'Forbidden: origin not allowed' });
     }

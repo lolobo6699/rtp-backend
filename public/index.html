@@ -1,0 +1,829 @@
+﻿<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>憟閎 RTP 蝞∠?撌亙</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Microsoft JhengHei', '敺株?甇??擃?, Arial, sans-serif;
+            background: #eef2f7;
+            min-height: 100vh;
+            padding: 24px;
+            color: #222;
+        }
+
+        /* ?? Header ?? */
+        .header {
+            background: linear-gradient(135deg, #1a3a6b 0%, #2d6a9f 100%);
+            color: #fff;
+            padding: 20px 28px;
+            border-radius: 12px;
+            margin-bottom: 18px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 14px rgba(26,58,107,.35);
+        }
+        .header h1 { font-size: 1.6em; letter-spacing: 1px; }
+        .header .sub { font-size: 0.82em; opacity: .75; margin-top: 4px; }
+        .threshold-label {
+            background: rgba(255,255,255,.15);
+            border-radius: 8px;
+            padding: 10px 16px;
+            text-align: center;
+            font-size: 0.85em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .threshold-label span { opacity: .85; white-space: nowrap; }
+        #thresholdInput {
+            width: 80px;
+            font-size: 1.1em;
+            font-weight: bold;
+            font-family: inherit;
+            text-align: center;
+            background: rgba(255,255,255,.2);
+            border: 1px solid rgba(255,255,255,.5);
+            border-radius: 6px;
+            color: #fff;
+            padding: 4px 6px;
+            transition: all .18s;
+        }
+        #thresholdInput:focus {
+            outline: none;
+            background: rgba(255,255,255,.35);
+            border-color: #fff;
+        }
+        #thresholdInput::placeholder { color: rgba(255,255,255,.5); }
+
+        /* ?? Stats bar ?? */
+        .stats-bar {
+            display: flex;
+            gap: 14px;
+            margin-bottom: 16px;
+        }
+        .stat-card {
+            background: #fff;
+            border-radius: 10px;
+            padding: 14px 18px;
+            flex: 1;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,.08);
+            border-top: 3px solid #ccc;
+        }
+        .stat-card.info  { border-color: #2d6a9f; }
+        .stat-card.danger{ border-color: #e74c3c; }
+        .stat-card.ok    { border-color: #27ae60; }
+        .stat-card .val  { font-size: 2em; font-weight: bold; }
+        .stat-card.info  .val { color: #2d6a9f; }
+        .stat-card.danger .val{ color: #e74c3c; }
+        .stat-card.ok   .val  { color: #27ae60; }
+        .stat-card .lbl  { font-size: 0.78em; color: #888; margin-top: 4px; }
+
+        /* ?? API Status bar ?? */
+        .api-status-bar {
+            background: #fff;
+            border-radius: 10px;
+            padding: 10px 18px;
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            box-shadow: 0 2px 8px rgba(0,0,0,.08);
+            font-size: 0.85em;
+            flex-wrap: wrap;
+        }
+        .api-status-bar .label { color: #888; }
+        .api-status-bar .value { font-weight: bold; }
+        #apiStatusDot {
+            width: 10px; height: 10px;
+            border-radius: 50%;
+            background: #ccc;
+            flex-shrink: 0;
+        }
+        #apiStatusDot.ok     { background: #27ae60; }
+        #apiStatusDot.error  { background: #e74c3c; }
+        #apiStatusDot.loading {
+            background: #f39c12;
+            animation: pulse .8s infinite alternate;
+        }
+        @keyframes pulse { from { opacity: 1; } to { opacity: .3; } }
+        #apiStatusText { color: #555; }
+        .next-update { margin-left: auto; color: #888; font-size: 0.82em; }
+
+        /* ?? Controls ?? */
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 14px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .btn {
+            padding: 9px 18px;
+            border: none;
+            border-radius: 7px;
+            cursor: pointer;
+            font-size: 0.88em;
+            font-family: inherit;
+            font-weight: bold;
+            transition: all .18s;
+            letter-spacing: .5px;
+        }
+        .btn:disabled { opacity: .55; cursor: not-allowed; }
+        .btn-add    { background: #2d6a9f; color: #fff; }
+        .btn-add:hover:not(:disabled) { background: #1a3a6b; }
+        .btn-refresh { background: #16a085; color: #fff; }
+        .btn-refresh:hover:not(:disabled) { background: #0e7261; }
+        .btn-save   { background: #27ae60; color: #fff; }
+        .btn-save:hover:not(:disabled) { background: #1e8449; }
+        .btn-tg     { background: #229ed9; color: #fff; }
+        .btn-tg:hover:not(:disabled) { background: #1a7fb5; }
+        .btn-export { background: #8e44ad; color: #fff; }
+        .btn-export:hover:not(:disabled) { background: #6c3483; }
+        .btn-clear  { background: #e74c3c; color: #fff; margin-left: auto; }
+        .btn-clear:hover:not(:disabled) { background: #c0392b; }
+
+        /* ?? Table ?? */
+        .table-wrap {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 3px 12px rgba(0,0,0,.1);
+            overflow: hidden;
+        }
+        table { width: 100%; border-collapse: collapse; }
+
+        thead tr { background: linear-gradient(135deg, #1a3a6b 0%, #2d6a9f 100%); }
+        thead th {
+            padding: 13px 10px;
+            color: #fff;
+            font-size: 0.88em;
+            text-align: center;
+            border-right: 1px solid rgba(255,255,255,.18);
+            white-space: nowrap;
+        }
+        thead th:last-child { border-right: none; }
+
+        tbody tr { border-bottom: 1px solid #e8ecf0; transition: background .12s; }
+        tbody tr:nth-child(even)        { background: #f8fafc; }
+        tbody tr:hover                  { background: #eef4fb !important; }
+        tbody tr.row-alert              { background: #fff3f3 !important; }
+        tbody tr.row-alert:hover        { background: #ffe6e6 !important; }
+
+        tbody td {
+            padding: 9px 8px;
+            text-align: center;
+            border-right: 1px solid #e8ecf0;
+            font-size: 0.9em;
+        }
+        tbody td:last-child { border-right: none; }
+
+        /* editable inputs */
+        .editable {
+            background: transparent;
+            border: 1px solid transparent;
+            width: 100%;
+            text-align: center;
+            font-family: inherit;
+            font-size: 0.9em;
+            padding: 5px 6px;
+            border-radius: 5px;
+            transition: all .18s;
+            color: inherit;
+        }
+        .editable:hover  { border-color: #aac0d8; background: #fff; }
+        .editable:focus  {
+            outline: none;
+            border-color: #2d6a9f;
+            background: #fff;
+            box-shadow: 0 0 0 2px rgba(45,106,159,.2);
+        }
+
+        /* RTP display cell */
+        .rtp-cell {
+            font-weight: 600;
+            font-size: 0.92em;
+        }
+        .rtp-loading { color: #f39c12; font-size: 0.82em; }
+        .rtp-error   { color: #e74c3c; font-size: 0.82em; }
+        .rtp-na      { color: #bbb; font-size: 0.82em; }
+
+        /* difference cell */
+        .diff-cell { font-weight: 700; font-size: 0.92em; padding: 9px 10px !important; }
+        .diff-ok   { color: #27ae60; }
+        .diff-neg  { color: #888; }
+        .diff-alert{ color: #e74c3c; }
+
+        /* threshold column */
+        .thresh-cell { padding: 8px !important; }
+        .badge-alert {
+            display: inline-block;
+            background: #e74c3c;
+            color: #fff;
+            border-radius: 5px;
+            padding: 2px 8px;
+            font-size: 0.75em;
+            font-weight: bold;
+            white-space: nowrap;
+        }
+
+        /* row number */
+        .row-num { color: #aaa; font-size: 0.82em; width: 42px; }
+
+        /* delete button */
+        .del-btn {
+            background: #e74c3c;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            padding: 5px 11px;
+            cursor: pointer;
+            font-size: 0.8em;
+            font-family: inherit;
+            transition: background .15s;
+        }
+        .del-btn:hover { background: #c0392b; }
+
+        /* empty state */
+        .empty-row td {
+            padding: 40px;
+            color: #bbb;
+            font-size: 0.95em;
+            text-align: center;
+        }
+
+        /* toast */
+        #toast {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: #333;
+            color: #fff;
+            padding: 12px 22px;
+            border-radius: 8px;
+            font-size: 0.88em;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: all .3s;
+            pointer-events: none;
+            z-index: 9999;
+        }
+        #toast.show { opacity: 1; transform: translateY(0); }
+
+        /* error list */
+        #errorBox {
+            background: #fff5f5;
+            border: 1px solid #f5c6cb;
+            border-radius: 8px;
+            padding: 10px 16px;
+            margin-bottom: 14px;
+            font-size: 0.83em;
+            color: #c0392b;
+            display: none;
+        }
+        #errorBox ul { padding-left: 18px; margin-top: 4px; }
+    </style>
+</head>
+<body>
+
+<!-- ?? Header ?? -->
+<div class="header">
+    <div>
+        <h1>憟閎 RTP 蝞∠?撌亙</h1>
+        <div class="sub">Return to Player ??蝟餌絞 繚 敶拍車嚗?頞?霈臬??蔗 繚 瘥??暺???/div>
+    </div>
+    <div class="threshold-label">
+        <span>撌株?霅衣內?瑼?/span>
+        <input id="thresholdInput" type="number" step="0.001" min="0" max="1"
+            value="0.012" placeholder="0.012"
+            oninput="onThresholdChange(this.value)"
+            onchange="onThresholdChange(this.value)">
+    </div>
+</div>
+
+<!-- ?? Stats ?? -->
+<div class="stats-bar">
+    <div class="stat-card info">
+        <div class="val" id="statTotal">0</div>
+        <div class="lbl">蝮賢??嗆</div>
+    </div>
+    <div class="stat-card danger">
+        <div class="val" id="statAlert">0</div>
+        <div class="lbl" id="statAlertLbl">雿?瑼鳴?撌株? &lt; 0.012嚗?/div>
+    </div>
+    <div class="stat-card ok">
+        <div class="val" id="statOk">0</div>
+        <div class="lbl">甇?虜?</div>
+    </div>
+</div>
+
+<!-- ?? API Status ?? -->
+<div class="api-status-bar">
+    <div id="apiStatusDot"></div>
+    <span id="apiStatusText">撠頛</span>
+    <span class="label">嚚?鞈????</span>
+    <span class="value" id="dateRangeText">??/span>
+    <span class="label">嚚?敶拍車嚗?/span>
+    <span class="value">憟閎?曇悖??敶?/span>
+    <span class="next-update" id="nextUpdateText"></span>
+</div>
+
+<!-- ?? Error Box ?? -->
+<div id="errorBox"></div>
+
+<!-- ?? Controls ?? -->
+<div class="controls">
+    <button class="btn btn-add"     onclick="addRow()">嚗??啣??</button>
+    <button class="btn btn-refresh" id="refreshBtn" onclick="fetchAllRTP()">?? 蝡?湔</button>
+    <button class="btn btn-tg" onclick="testTGNotification()">? 皜祈岫?冽</button>
+    <button class="btn btn-save"    onclick="saveData()">? ?脣?</button>
+    <button class="btn btn-export"  onclick="exportCSV()">? ?臬 CSV</button>
+    <button class="btn btn-clear"   onclick="clearAll()">?? 皜?券</button>
+</div>
+
+<!-- ?? Table ?? -->
+<div class="table-wrap">
+    <table>
+        <thead>
+            <tr>
+                <th style="width:44px;">#</th>
+                <th style="min-width:110px;">??迂</th>
+                <th style="min-width:130px;">?擃???</th>
+                <th style="min-width:130px;">?嗅??嗆? RTP</th>
+                <th style="min-width:110px;">?嗅?撌株?</th>
+                <th style="min-width:110px;">雿?瑼?/th>
+                <th style="width:74px;">??</th>
+            </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+    </table>
+</div>
+
+<div id="toast"></div>
+
+<script>
+/* ???????????????? 閮剖? ???????????????? */
+const BACKEND_URL    = '';
+const TARGET_LOTTERY = '憟閎?曇悖??敶?;
+
+let THRESHOLD = 0.012;
+let rows = [];
+let nextId = 1;
+let isFetching = false;
+let nextFetchTimer = null;
+
+/* ???????????????? ?身鞈? ???????????????? */
+const DEFAULT = [
+    { name:'XO',  maxBonus:0.988, currentRTP:null },
+    { name:'XH',  maxBonus:0.989, currentRTP:null },
+    { name:'LS',  maxBonus:0.991, currentRTP:null },
+    { name:'OL',  maxBonus:0.990, currentRTP:null },
+    { name:'XY',  maxBonus:0.994, currentRTP:null },
+    { name:'FB',  maxBonus:0.988, currentRTP:null },
+    { name:'SY',  maxBonus:0.985, currentRTP:null },
+    { name:'LY',  maxBonus:0.985, currentRTP:null },
+    { name:'MT',  maxBonus:0.992, currentRTP:null },
+    { name:'JD',  maxBonus:0.990, currentRTP:null },
+    { name:'ND',  maxBonus:0.999, currentRTP:null },
+    { name:'YD',  maxBonus:0.998, currentRTP:null },
+    { name:'SH',  maxBonus:0.988, currentRTP:null },
+    { name:'YS',  maxBonus:0.989, currentRTP:null },
+    { name:'JY',  maxBonus:0.994, currentRTP:null },
+    { name:'HS',  maxBonus:0.999, currentRTP:null },
+];
+
+/* ???????????????? ?交?????祆?1????隞予 ???????????????? */
+function getDateRange() {
+    const now = new Date();
+    const year  = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day   = String(now.getDate()).padStart(2, '0');
+    return {
+        dateStart: `${year}-${month}-01`,
+        dateEnd:   `${year}-${month}-${day}`,
+    };
+}
+
+/* ???????????????? API ?? ???????????????? */
+async function fetchAllRTP() {
+    if (isFetching) return;
+    isFetching = true;
+
+    const refreshBtn = document.getElementById('refreshBtn');
+    refreshBtn.disabled = true;
+    setApiStatus('loading', '鞈???銝凌?);
+
+    const { dateStart, dateEnd } = getDateRange();
+    document.getElementById('dateRangeText').textContent = `${dateStart} 嚚?${dateEnd}`;
+
+    if (rows.length === 0) {
+        isFetching = false;
+        refreshBtn.disabled = false;
+        setApiStatus('error', '?∪??嗉???);
+        return;
+    }
+
+    try {
+        const res = await fetch(`${BACKEND_URL}/api/stats`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ platforms: rows.map(r => r.name), lotteryType: TARGET_LOTTERY, dateStart, dateEnd }),
+        });
+
+        if (!res.ok) {
+            throw new Error(`HTTP ${res.status}`);
+        }
+
+        const data = await res.json();
+        console.log('[RTP] API ? rows ?賊?:', (data.rows||[]).length, '  errors:', data.errors);
+        console.log('[RTP] 敶拍車?”:', [...new Set((data.rows||[]).map(r=>r['敶拍?']))]);
+        console.log('[RTP] 撟喳?”:', [...new Set((data.rows||[]).map(r=>r['撟喳']))]);
+
+        // 靘像?啣??湛??芸?霈 RTP 甈?嚗? 憟?繩?釣??
+        const statMap = {};
+        for (const row of (data.rows || [])) {
+            const p = row['撟喳'];
+            const lotteryName = (row['敶拍?'] || '').trim();
+            if (lotteryName === TARGET_LOTTERY) {
+                if (!statMap[p]) statMap[p] = { rtp: null, bonus: 0, bet: 0, rebate: 0, profit: 0 };
+                if (row['RTP'] != null) statMap[p].rtp = parseNum(row['RTP']);
+                statMap[p].bonus  += parseNum(row['憟?']);
+                statMap[p].bet    += parseNum(row['???] ?? row['?釣??']);
+                statMap[p].rebate += parseNum(row['餈']);
+                statMap[p].profit += parseNum(row['??'] ?? row['?']);
+            }
+        }
+        console.log('[RTP] 敶拍車蝭拚敺像??', Object.keys(statMap));
+
+        // 撖怠瘥??嗥? RTP ??憪?API 鞈?
+        for (const r of rows) {
+            const s = statMap[r.name];
+            if (s) {
+                r.currentRTP = s.rtp !== null ? s.rtp : (s.bet > 0 ? s.bonus / s.bet : null);
+                r.rtpStatus  = r.currentRTP !== null ? 'ok' : 'na';
+                r.apiRaw     = s;
+            } else {
+                r.currentRTP = null;
+                r.rtpStatus  = 'na';
+                r.apiRaw     = null;
+            }
+        }
+
+        // 憿舐內 API ?航炊皜
+        showApiErrors(data.errors || []);
+
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString('zh-TW', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+        setApiStatus('ok', `?敺?堆?${timeStr}`);
+        showToast('??鞈??湔摰?');
+        saveData(true);
+        sendTGNotification(timeStr);
+
+    } catch (err) {
+        for (const r of rows) r.rtpStatus = 'error';
+        setApiStatus('error', `??憭望?嚗?{err.message}`);
+        showToast('??API ???憭望?嚗?蝣箄?蝬脰楝???');
+    }
+
+    isFetching = false;
+    refreshBtn.disabled = false;
+    render();
+    scheduleNextFetch();
+}
+
+function showApiErrors(errors) {
+    const box = document.getElementById('errorBox');
+    if (!errors || errors.length === 0) {
+        box.style.display = 'none';
+        return;
+    }
+    box.style.display = 'block';
+    box.innerHTML = `<strong>???典?撟喳??航炊嚗?/strong><ul>${
+        errors.map(e => `<li>${e.platform}嚗?{e.error}</li>`).join('')
+    }</ul>`;
+}
+
+function setApiStatus(state, msg) {
+    const dot  = document.getElementById('apiStatusDot');
+    const text = document.getElementById('apiStatusText');
+    dot.className = state;
+    text.textContent = msg;
+}
+
+/* ???????????????? TG ?冽 ???????????????? */
+function parseNum(v) {
+    if (v == null) return 0;
+    return parseFloat(String(v).replace(/,/g, '')) || 0;
+}
+
+function fmtNum(n) {
+    if (n == null || isNaN(n)) return '??;
+    return Number(n).toLocaleString('en-US', { minimumFractionDigits: 3, maximumFractionDigits: 3 });
+}
+
+async function sendTGNotification(timeStr) {
+    const alertRows = rows.filter(r =>
+        r.currentRTP !== null && (r.maxBonus - r.currentRTP) < THRESHOLD
+    );
+
+    let msg = '';
+    if (alertRows.length === 0) {
+        msg = `??嚗?{timeStr}\n?典像?啁?啣虜`;
+    } else {
+        msg = `??嚗?{timeStr}\n`;
+        for (const r of alertRows) {
+            const raw  = r.apiRaw || {};
+            const diff = (r.maxBonus - r.currentRTP).toFixed(3);
+            msg += `\n撟喳嚗?{r.name}\n`;
+            msg += `?釣??嚗?{fmtNum(raw.bet)}\n`;
+            msg += `憟?嚗?{fmtNum(raw.bonus)}\n`;
+            msg += `餈嚗?{fmtNum(raw.rebate)}\n`;
+            msg += `??嚗?{fmtNum(raw.profit)}\n`;
+            msg += `RTP嚗?{r.currentRTP.toFixed(3)}\n`;
+            msg += `雿閫撖TP嚗?{diff}\n`;
+        }
+    }
+
+    try {
+        const res = await fetch(`${BACKEND_URL}/api/notify`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text: msg }),
+        });
+        const result = await res.json();
+        console.log('[TG] ?冽蝯?:', result);
+        if (result.ok) {
+            showToast('? TG ?冽??');
+        } else {
+            showToast('?? TG ?冽憭望?嚗? + result.description);
+        }
+    } catch (e) {
+        console.warn('[TG] ?冽憭望?:', e.message);
+        showToast('?? TG ?冽憭望?嚗? + e.message);
+    }
+}
+
+async function testTGNotification() {
+    showToast('?? ???鞈?敺?凌?);
+    await fetchAllRTP();
+}
+
+/* ???????????????? ?湧??芸??湔 ???????????????? */
+function scheduleNextFetch() {
+    if (nextFetchTimer) clearTimeout(nextFetchTimer);
+    const now = new Date();
+    const msToNextHour = (60 - now.getMinutes()) * 60000 - now.getSeconds() * 1000 - now.getMilliseconds();
+    nextFetchTimer = setTimeout(() => {
+        fetchAllRTP();
+    }, msToNextHour);
+
+    // 憿舐內銝活?湔??
+    const nextTime = new Date(now.getTime() + msToNextHour);
+    const h = String(nextTime.getHours()).padStart(2,'0');
+    const m = String(nextTime.getMinutes()).padStart(2,'0');
+    document.getElementById('nextUpdateText').textContent = `銝活?湔嚗?{h}:${m}`;
+}
+
+/* ???????????????? ?瑼餉??????????????????? */
+function onThresholdChange(val) {
+    const v = parseFloat(val);
+    if (isNaN(v) || v < 0) return;
+    THRESHOLD = v;
+    document.getElementById('statAlertLbl').innerHTML =
+        `雿?瑼鳴?撌株? &lt; ${THRESHOLD}嚗;
+    localStorage.setItem('qrtpThreshold', THRESHOLD);
+    render();
+}
+
+/* ???????????????? ???????????????????? */
+function init() {
+    const savedThreshold = localStorage.getItem('qrtpThreshold');
+    if (savedThreshold !== null) {
+        const v = parseFloat(savedThreshold);
+        if (!isNaN(v) && v >= 0) {
+            THRESHOLD = v;
+            document.getElementById('thresholdInput').value = THRESHOLD;
+            document.getElementById('statAlertLbl').innerHTML =
+                `雿?瑼鳴?撌株? &lt; ${THRESHOLD}嚗;
+        }
+    }
+
+    const saved = localStorage.getItem('qrtpData');
+    if (saved) {
+        try {
+            const parsed = JSON.parse(saved);
+            rows   = parsed.rows || [];
+            nextId = parsed.nextId || rows.length + 1;
+            // ???葉 currentRTP ?舀摮?靽??詨捆
+            rows.forEach(r => {
+                if (r.rtpStatus === undefined) r.rtpStatus = r.currentRTP !== null ? 'ok' : 'na';
+            });
+        } catch(e) { loadDefault(); }
+    } else {
+        loadDefault();
+    }
+
+    const { dateStart, dateEnd } = getDateRange();
+    document.getElementById('dateRangeText').textContent = `${dateStart} 嚚?${dateEnd}`;
+
+    render();
+    fetchAllRTP(); // ?????單?銝甈?}
+
+function loadDefault() {
+    nextId = 1;
+    rows = DEFAULT.map(d => ({ id: nextId++, ...d, rtpStatus: 'na' }));
+}
+
+/* ???????????????? ?脣? ???????????????? */
+function saveData(silent = false) {
+    const toSave = rows.map(({ apiRaw, ...rest }) => rest);
+    localStorage.setItem('qrtpData', JSON.stringify({ rows: toSave, nextId }));
+    if (!silent) showToast('??鞈?撌脣摮?);
+}
+
+function clearAll() {
+    if (!confirm('蝣箏?皜????嗉???甇斗?雿瘜儔??)) return;
+    rows = [];
+    nextId = 1;
+    localStorage.removeItem('qrtpData');
+    render();
+    showToast('?? 撌脫??斗?????);
+}
+
+/* ???????????????? ?啣? / ?芷 ???????????????? */
+function addRow() {
+    rows.push({ id: nextId++, name: '?啣???, maxBonus: 0.000, currentRTP: null, rtpStatus: 'na' });
+    render();
+    setTimeout(() => {
+        const inputs = document.querySelectorAll('.name-input');
+        const last = inputs[inputs.length - 1];
+        if (last) { last.focus(); last.select(); }
+    }, 30);
+}
+
+function deleteRow(id) {
+    rows = rows.filter(r => r.id !== id);
+    render();
+    saveData(true);
+}
+
+/* ???????????????? ?湔鞈? ???????????????? */
+function updateField(id, field, rawVal) {
+    const row = rows.find(r => r.id === id);
+    if (!row) return;
+    if (field === 'name') {
+        row.name = rawVal.trim() || '?芸??;
+    } else {
+        const v = parseFloat(rawVal);
+        row[field] = isNaN(v) ? 0 : v;
+    }
+    refreshRowCells(id);
+    updateStats();
+}
+
+function refreshRowCells(id) {
+    const row = rows.find(r => r.id === id);
+    if (!row) return;
+    const tr = document.querySelector(`tr[data-id="${id}"]`);
+    if (!tr) return;
+
+    const rtp = row.currentRTP;
+    const diffCell   = tr.querySelector('.diff-cell');
+    const threshCell = tr.querySelector('.thresh-cell');
+    const rtpCell    = tr.querySelector('.rtp-cell');
+
+    if (rtpCell) {
+        rtpCell.innerHTML = rtpCellHTML(row);
+    }
+
+    if (rtp !== null && rtp !== undefined) {
+        const diff    = row.maxBonus - rtp;
+        const isAlert = diff < THRESHOLD;
+        diffCell.textContent = diff.toFixed(3);
+        diffCell.className   = 'diff-cell ' + (isAlert ? 'diff-alert' : diff < 0 ? 'diff-neg' : 'diff-ok');
+        threshCell.innerHTML = isAlert ? '<span class="badge-alert">??雿?瑼?/span>' : '';
+        tr.className = isAlert ? 'row-alert' : '';
+    } else {
+        diffCell.textContent = '??;
+        diffCell.className   = 'diff-cell diff-neg';
+        threshCell.innerHTML = '';
+        tr.className = '';
+    }
+}
+
+function rtpCellHTML(row) {
+    if (row.rtpStatus === 'loading') return '<span class="rtp-loading">頛銝凌?/span>';
+    if (row.rtpStatus === 'error')   return '<span class="rtp-error">??憭望?</span>';
+    if (row.currentRTP === null || row.currentRTP === undefined) return '<span class="rtp-na">?∟???/span>';
+    return row.currentRTP.toFixed(3);
+}
+
+/* ???????????????? 蝯梯? ???????????????? */
+function updateStats() {
+    const total  = rows.length;
+    const alerts = rows.filter(r => r.currentRTP !== null && r.currentRTP !== undefined && (r.maxBonus - r.currentRTP) < THRESHOLD).length;
+    document.getElementById('statTotal').textContent = total;
+    document.getElementById('statAlert').textContent = alerts;
+    document.getElementById('statOk').textContent    = total - alerts;
+}
+
+/* ???????????????? 皜脫??渲” ???????????????? */
+function render() {
+    const tbody = document.getElementById('tbody');
+    tbody.innerHTML = '';
+
+    if (rows.length === 0) {
+        tbody.innerHTML = `<tr class="empty-row"><td colspan="7">撠?鞈?嚗?暺? ?啣????憪?/td></tr>`;
+        updateStats();
+        return;
+    }
+
+    rows.forEach((row, idx) => {
+        const rtp     = row.currentRTP;
+        const hasDiff = rtp !== null && rtp !== undefined;
+        const diff    = hasDiff ? row.maxBonus - rtp : null;
+        const isAlert = hasDiff && diff < THRESHOLD;
+
+        const tr = document.createElement('tr');
+        tr.setAttribute('data-id', row.id);
+        tr.className = isAlert ? 'row-alert' : '';
+
+        tr.innerHTML = `
+            <td class="row-num">${idx + 1}</td>
+            <td>
+                <input class="editable name-input"
+                    type="text"
+                    value="${escHtml(row.name)}"
+                    placeholder="??迂"
+                    onchange="updateField(${row.id},'name',this.value)">
+            </td>
+            <td>
+                <input class="editable"
+                    type="number" step="0.001" min="0" max="2"
+                    value="${row.maxBonus.toFixed(3)}"
+                    placeholder="0.000"
+                    onchange="updateField(${row.id},'maxBonus',this.value)">
+            </td>
+            <td class="rtp-cell">${rtpCellHTML(row)}</td>
+            <td class="diff-cell ${isAlert ? 'diff-alert' : diff !== null && diff < 0 ? 'diff-neg' : 'diff-ok'}">
+                ${diff !== null ? diff.toFixed(3) : '??}
+            </td>
+            <td class="thresh-cell">
+                ${isAlert ? '<span class="badge-alert">??雿?瑼?/span>' : ''}
+            </td>
+            <td>
+                <button class="del-btn" onclick="deleteRow(${row.id})">?芷</button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+
+    updateStats();
+}
+
+/* ???????????????? ?臬 CSV ???????????????? */
+function exportCSV() {
+    const { dateStart, dateEnd } = getDateRange();
+    const BOM = '嚜?;
+    const header = `??迂,?擃???,?嗅??嗆?RTP,?嗅?撌株?,雿?瑼?鞈???n`;
+    const body = rows.map(r => {
+        const rtp  = r.currentRTP !== null && r.currentRTP !== undefined ? r.currentRTP.toFixed(3) : '';
+        const diff = rtp ? (r.maxBonus - r.currentRTP).toFixed(3) : '';
+        const alert = (diff !== '' && (r.maxBonus - r.currentRTP) < THRESHOLD) ? '?? : '';
+        return `${r.name},${r.maxBonus.toFixed(3)},${rtp},${diff},${alert},${dateStart}~${dateEnd}`;
+    }).join('\n');
+
+    const blob = new Blob([BOM + header + body], { type: 'text/csv;charset=utf-8;' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = `憟閎RTP_${dateStart}_${dateEnd}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('? CSV ?臬??');
+}
+
+/* ???????????????? 撌亙 ???????????????? */
+function escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+let toastTimer;
+function showToast(msg) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
+}
+
+/* ???????????????? ?? ???????????????? */
+init();
+</script>
+</body>
+</html>
+
