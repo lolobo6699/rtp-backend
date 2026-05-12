@@ -1,6 +1,7 @@
 const { ProxyAgent, fetch: proxyFetch } = require('undici');
 
-const STATS_API = 'https://stats-crawler.up.railway.app';
+const STATS_API     = 'https://stats-crawler.up.railway.app';
+const ALLOWED_ORIGIN = 'https://lolobo6699.github.io';
 
 // 從 request stream 手動讀取原始 body
 function readRawBody(req) {
@@ -13,9 +14,17 @@ function readRawBody(req) {
 }
 
 module.exports = async function handler(req, res) {
-    res.setHeader('Access-Control-Allow-Origin', '*');
+    const origin = req.headers['origin'] || '';
+
+    // CORS 白名單：只允許 GitHub Pages
+    if (origin && origin !== ALLOWED_ORIGIN) {
+        return res.status(403).json({ error: 'Forbidden: origin not allowed' });
+    }
+
+    res.setHeader('Access-Control-Allow-Origin', ALLOWED_ORIGIN);
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    res.setHeader('Vary', 'Origin');
 
     if (req.method === 'OPTIONS') return res.status(200).end();
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -73,9 +82,6 @@ module.exports = async function handler(req, res) {
         }
         res.status(200).json(data);
     } catch (err) {
-        res.status(500).json({
-            error: err.message,
-            stack: err.stack ? err.stack.slice(0, 300) : null,
-        });
+        res.status(500).json({ error: err.message });
     }
 };
