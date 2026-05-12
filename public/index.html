@@ -290,6 +290,8 @@
 </head>
 <body>
 
+<div id="mainApp" style="display:none">
+
 <!-- ── Header ── -->
 <div class="header">
     <div>
@@ -379,6 +381,8 @@
         </button>
     </div>
 </div>
+
+</div><!-- end mainApp -->
 
 <div id="toast"></div>
 
@@ -869,6 +873,7 @@ async function doLogin() {
             SESSION_TOKEN = data.token;
             sessionStorage.setItem('rtp_token', SESSION_TOKEN);
             document.getElementById('loginOverlay').style.display = 'none';
+            document.getElementById('mainApp').style.display = 'block';
             init();
         } else {
             errEl.textContent = data.error || '登入失敗';
@@ -892,6 +897,7 @@ document.getElementById('loginUser').addEventListener('keydown', e => {
 /* ──────────────── 啟動 ──────────────── */
 if (SESSION_TOKEN) {
     document.getElementById('loginOverlay').style.display = 'none';
+    document.getElementById('mainApp').style.display = 'block';
     init();
 } else {
     document.getElementById('loginOverlay').style.display = 'flex';
