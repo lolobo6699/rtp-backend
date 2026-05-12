@@ -1,21 +1,21 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>憟閎 RTP 蝞∠?撌亙</title>
+    <title>奇趣 RTP 管理工具</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
-            font-family: 'Microsoft JhengHei', '敺株?甇??擃?, Arial, sans-serif;
+            font-family: 'Microsoft JhengHei', '微軟正黑體', Arial, sans-serif;
             background: #eef2f7;
             min-height: 100vh;
             padding: 24px;
             color: #222;
         }
 
-        /* ?? Header ?? */
+        /* ── Header ── */
         .header {
             background: linear-gradient(135deg, #1a3a6b 0%, #2d6a9f 100%);
             color: #fff;
@@ -60,7 +60,7 @@
         }
         #thresholdInput::placeholder { color: rgba(255,255,255,.5); }
 
-        /* ?? Stats bar ?? */
+        /* ── Stats bar ── */
         .stats-bar {
             display: flex;
             gap: 14px;
@@ -84,7 +84,7 @@
         .stat-card.ok   .val  { color: #27ae60; }
         .stat-card .lbl  { font-size: 0.78em; color: #888; margin-top: 4px; }
 
-        /* ?? API Status bar ?? */
+        /* ── API Status bar ── */
         .api-status-bar {
             background: #fff;
             border-radius: 10px;
@@ -115,7 +115,7 @@
         #apiStatusText { color: #555; }
         .next-update { margin-left: auto; color: #888; font-size: 0.82em; }
 
-        /* ?? Controls ?? */
+        /* ── Controls ── */
         .controls {
             display: flex;
             gap: 10px;
@@ -148,7 +148,7 @@
         .btn-clear  { background: #e74c3c; color: #fff; margin-left: auto; }
         .btn-clear:hover:not(:disabled) { background: #c0392b; }
 
-        /* ?? Table ?? */
+        /* ── Table ── */
         .table-wrap {
             background: #fff;
             border-radius: 12px;
@@ -290,14 +290,14 @@
 </head>
 <body>
 
-<!-- ?? Header ?? -->
+<!-- ── Header ── -->
 <div class="header">
     <div>
-        <h1>憟閎 RTP 蝞∠?撌亙</h1>
-        <div class="sub">Return to Player ??蝟餌絞 繚 敶拍車嚗?頞?霈臬??蔗 繚 瘥??暺???/div>
+        <h1>奇趣 RTP 管理工具</h1>
+        <div class="sub">Return to Player 監控系統 · 彩種：奇趣腾讯分分彩 · 每小時整點自動更新</div>
     </div>
     <div class="threshold-label">
-        <span>撌株?霅衣內?瑼?/span>
+        <span>差距警示門檻</span>
         <input id="thresholdInput" type="number" step="0.001" min="0" max="1"
             value="0.012" placeholder="0.012"
             oninput="onThresholdChange(this.value)"
@@ -305,58 +305,58 @@
     </div>
 </div>
 
-<!-- ?? Stats ?? -->
+<!-- ── Stats ── -->
 <div class="stats-bar">
     <div class="stat-card info">
         <div class="val" id="statTotal">0</div>
-        <div class="lbl">蝮賢??嗆</div>
+        <div class="lbl">總商戶數</div>
     </div>
     <div class="stat-card danger">
         <div class="val" id="statAlert">0</div>
-        <div class="lbl" id="statAlertLbl">雿?瑼鳴?撌株? &lt; 0.012嚗?/div>
+        <div class="lbl" id="statAlertLbl">低於門檻（差距 &lt; 0.012）</div>
     </div>
     <div class="stat-card ok">
         <div class="val" id="statOk">0</div>
-        <div class="lbl">甇?虜?</div>
+        <div class="lbl">正常商戶</div>
     </div>
 </div>
 
-<!-- ?? API Status ?? -->
+<!-- ── API Status ── -->
 <div class="api-status-bar">
     <div id="apiStatusDot"></div>
-    <span id="apiStatusText">撠頛</span>
-    <span class="label">嚚?鞈????</span>
-    <span class="value" id="dateRangeText">??/span>
-    <span class="label">嚚?敶拍車嚗?/span>
-    <span class="value">憟閎?曇悖??敶?/span>
+    <span id="apiStatusText">尚未載入</span>
+    <span class="label">｜ 資料區間：</span>
+    <span class="value" id="dateRangeText">—</span>
+    <span class="label">｜ 彩種：</span>
+    <span class="value">奇趣腾讯分分彩</span>
     <span class="next-update" id="nextUpdateText"></span>
 </div>
 
-<!-- ?? Error Box ?? -->
+<!-- ── Error Box ── -->
 <div id="errorBox"></div>
 
-<!-- ?? Controls ?? -->
+<!-- ── Controls ── -->
 <div class="controls">
-    <button class="btn btn-add"     onclick="addRow()">嚗??啣??</button>
-    <button class="btn btn-refresh" id="refreshBtn" onclick="fetchAllRTP()">?? 蝡?湔</button>
-    <button class="btn btn-tg" onclick="testTGNotification()">? 皜祈岫?冽</button>
-    <button class="btn btn-save"    onclick="saveData()">? ?脣?</button>
-    <button class="btn btn-export"  onclick="exportCSV()">? ?臬 CSV</button>
-    <button class="btn btn-clear"   onclick="clearAll()">?? 皜?券</button>
+    <button class="btn btn-add"     onclick="addRow()">＋ 新增商戶</button>
+    <button class="btn btn-refresh" id="refreshBtn" onclick="fetchAllRTP()">🔄 立即更新</button>
+    <button class="btn btn-tg" onclick="testTGNotification()">📨 測試推播</button>
+    <button class="btn btn-save"    onclick="saveData()">💾 儲存</button>
+    <button class="btn btn-export"  onclick="exportCSV()">📥 匯出 CSV</button>
+    <button class="btn btn-clear"   onclick="clearAll()">🗑 清除全部</button>
 </div>
 
-<!-- ?? Table ?? -->
+<!-- ── Table ── -->
 <div class="table-wrap">
     <table>
         <thead>
             <tr>
                 <th style="width:44px;">#</th>
-                <th style="min-width:110px;">??迂</th>
-                <th style="min-width:130px;">?擃???</th>
-                <th style="min-width:130px;">?嗅??嗆? RTP</th>
-                <th style="min-width:110px;">?嗅?撌株?</th>
-                <th style="min-width:110px;">雿?瑼?/th>
-                <th style="width:74px;">??</th>
+                <th style="min-width:110px;">商戶名稱</th>
+                <th style="min-width:130px;">最高獎金號</th>
+                <th style="min-width:130px;">當前當月 RTP</th>
+                <th style="min-width:110px;">當前差距</th>
+                <th style="min-width:110px;">低於門檻</th>
+                <th style="width:74px;">操作</th>
             </tr>
         </thead>
         <tbody id="tbody"></tbody>
@@ -366,9 +366,9 @@
 <div id="toast"></div>
 
 <script>
-/* ???????????????? 閮剖? ???????????????? */
+/* ──────────────── 設定 ──────────────── */
 const BACKEND_URL    = '';
-const TARGET_LOTTERY = '憟閎?曇悖??敶?;
+const TARGET_LOTTERY = '奇趣腾讯分分彩';
 
 let THRESHOLD = 0.012;
 let rows = [];
@@ -376,7 +376,7 @@ let nextId = 1;
 let isFetching = false;
 let nextFetchTimer = null;
 
-/* ???????????????? ?身鞈? ???????????????? */
+/* ──────────────── 預設資料 ──────────────── */
 const DEFAULT = [
     { name:'XO',  maxBonus:0.988, currentRTP:null },
     { name:'XH',  maxBonus:0.989, currentRTP:null },
@@ -396,7 +396,7 @@ const DEFAULT = [
     { name:'HS',  maxBonus:0.999, currentRTP:null },
 ];
 
-/* ???????????????? ?交?????祆?1????隞予 ???????????????? */
+/* ──────────────── 日期區間：本月1號 → 今天 ──────────────── */
 function getDateRange() {
     const now = new Date();
     const year  = now.getFullYear();
@@ -408,22 +408,22 @@ function getDateRange() {
     };
 }
 
-/* ???????????????? API ?? ???????????????? */
+/* ──────────────── API 抓取 ──────────────── */
 async function fetchAllRTP() {
     if (isFetching) return;
     isFetching = true;
 
     const refreshBtn = document.getElementById('refreshBtn');
     refreshBtn.disabled = true;
-    setApiStatus('loading', '鞈???銝凌?);
+    setApiStatus('loading', '資料抓取中…');
 
     const { dateStart, dateEnd } = getDateRange();
-    document.getElementById('dateRangeText').textContent = `${dateStart} 嚚?${dateEnd}`;
+    document.getElementById('dateRangeText').textContent = `${dateStart} ～ ${dateEnd}`;
 
     if (rows.length === 0) {
         isFetching = false;
         refreshBtn.disabled = false;
-        setApiStatus('error', '?∪??嗉???);
+        setApiStatus('error', '無商戶資料');
         return;
     }
 
@@ -439,27 +439,27 @@ async function fetchAllRTP() {
         }
 
         const data = await res.json();
-        console.log('[RTP] API ? rows ?賊?:', (data.rows||[]).length, '  errors:', data.errors);
-        console.log('[RTP] 敶拍車?”:', [...new Set((data.rows||[]).map(r=>r['敶拍?']))]);
-        console.log('[RTP] 撟喳?”:', [...new Set((data.rows||[]).map(r=>r['撟喳']))]);
+        console.log('[RTP] API 回傳 rows 數量:', (data.rows||[]).length, '  errors:', data.errors);
+        console.log('[RTP] 彩種列表:', [...new Set((data.rows||[]).map(r=>r['彩种']))]);
+        console.log('[RTP] 平台列表:', [...new Set((data.rows||[]).map(r=>r['平台']))]);
 
-        // 靘像?啣??湛??芸?霈 RTP 甈?嚗? 憟?繩?釣??
+        // 依平台彙整：優先讀 RTP 欄位，無則用 奖金÷投注金额
         const statMap = {};
         for (const row of (data.rows || [])) {
-            const p = row['撟喳'];
-            const lotteryName = (row['敶拍?'] || '').trim();
+            const p = row['平台'];
+            const lotteryName = (row['彩种'] || '').trim();
             if (lotteryName === TARGET_LOTTERY) {
                 if (!statMap[p]) statMap[p] = { rtp: null, bonus: 0, bet: 0, rebate: 0, profit: 0 };
                 if (row['RTP'] != null) statMap[p].rtp = parseNum(row['RTP']);
-                statMap[p].bonus  += parseNum(row['憟?']);
-                statMap[p].bet    += parseNum(row['???] ?? row['?釣??']);
-                statMap[p].rebate += parseNum(row['餈']);
-                statMap[p].profit += parseNum(row['??'] ?? row['?']);
+                statMap[p].bonus  += parseNum(row['奖金']);
+                statMap[p].bet    += parseNum(row['销量'] ?? row['投注金额']);
+                statMap[p].rebate += parseNum(row['返点']);
+                statMap[p].profit += parseNum(row['盈亏'] ?? row['盈号']);
             }
         }
-        console.log('[RTP] 敶拍車蝭拚敺像??', Object.keys(statMap));
+        console.log('[RTP] 彩種篩選後平台:', Object.keys(statMap));
 
-        // 撖怠瘥??嗥? RTP ??憪?API 鞈?
+        // 寫入每個商戶的 RTP 與原始 API 資料
         for (const r of rows) {
             const s = statMap[r.name];
             if (s) {
@@ -473,20 +473,20 @@ async function fetchAllRTP() {
             }
         }
 
-        // 憿舐內 API ?航炊皜
+        // 顯示 API 錯誤清單
         showApiErrors(data.errors || []);
 
         const now = new Date();
         const timeStr = now.toLocaleTimeString('zh-TW', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
-        setApiStatus('ok', `?敺?堆?${timeStr}`);
-        showToast('??鞈??湔摰?');
+        setApiStatus('ok', `最後更新：${timeStr}`);
+        showToast('✅ 資料更新完成');
         saveData(true);
         sendTGNotification(timeStr);
 
     } catch (err) {
         for (const r of rows) r.rtpStatus = 'error';
-        setApiStatus('error', `??憭望?嚗?{err.message}`);
-        showToast('??API ???憭望?嚗?蝣箄?蝬脰楝???');
+        setApiStatus('error', `抓取失敗：${err.message}`);
+        showToast('❌ API 連線失敗，請確認網路連線');
     }
 
     isFetching = false;
@@ -502,8 +502,8 @@ function showApiErrors(errors) {
         return;
     }
     box.style.display = 'block';
-    box.innerHTML = `<strong>???典?撟喳??航炊嚗?/strong><ul>${
-        errors.map(e => `<li>${e.platform}嚗?{e.error}</li>`).join('')
+    box.innerHTML = `<strong>⚠ 部分平台回傳錯誤：</strong><ul>${
+        errors.map(e => `<li>${e.platform}：${e.error}</li>`).join('')
     }</ul>`;
 }
 
@@ -514,14 +514,14 @@ function setApiStatus(state, msg) {
     text.textContent = msg;
 }
 
-/* ???????????????? TG ?冽 ???????????????? */
+/* ──────────────── TG 推播 ──────────────── */
 function parseNum(v) {
     if (v == null) return 0;
     return parseFloat(String(v).replace(/,/g, '')) || 0;
 }
 
 function fmtNum(n) {
-    if (n == null || isNaN(n)) return '??;
+    if (n == null || isNaN(n)) return '—';
     return Number(n).toLocaleString('en-US', { minimumFractionDigits: 3, maximumFractionDigits: 3 });
 }
 
@@ -532,19 +532,19 @@ async function sendTGNotification(timeStr) {
 
     let msg = '';
     if (alertRows.length === 0) {
-        msg = `??嚗?{timeStr}\n?典像?啁?啣虜`;
+        msg = `時間：${timeStr}\n全平台無異常`;
     } else {
-        msg = `??嚗?{timeStr}\n`;
+        msg = `時間：${timeStr}\n`;
         for (const r of alertRows) {
             const raw  = r.apiRaw || {};
             const diff = (r.maxBonus - r.currentRTP).toFixed(3);
-            msg += `\n撟喳嚗?{r.name}\n`;
-            msg += `?釣??嚗?{fmtNum(raw.bet)}\n`;
-            msg += `憟?嚗?{fmtNum(raw.bonus)}\n`;
-            msg += `餈嚗?{fmtNum(raw.rebate)}\n`;
-            msg += `??嚗?{fmtNum(raw.profit)}\n`;
-            msg += `RTP嚗?{r.currentRTP.toFixed(3)}\n`;
-            msg += `雿閫撖TP嚗?{diff}\n`;
+            msg += `\n平台：${r.name}\n`;
+            msg += `投注金额：${fmtNum(raw.bet)}\n`;
+            msg += `奖金：${fmtNum(raw.bonus)}\n`;
+            msg += `返点：${fmtNum(raw.rebate)}\n`;
+            msg += `盈亏：${fmtNum(raw.profit)}\n`;
+            msg += `RTP：${r.currentRTP.toFixed(3)}\n`;
+            msg += `低於觀察RTP：${diff}\n`;
         }
     }
 
@@ -555,24 +555,24 @@ async function sendTGNotification(timeStr) {
             body: JSON.stringify({ text: msg }),
         });
         const result = await res.json();
-        console.log('[TG] ?冽蝯?:', result);
+        console.log('[TG] 推播結果:', result);
         if (result.ok) {
-            showToast('? TG ?冽??');
+            showToast('📨 TG 推播成功');
         } else {
-            showToast('?? TG ?冽憭望?嚗? + result.description);
+            showToast('⚠️ TG 推播失敗：' + result.description);
         }
     } catch (e) {
-        console.warn('[TG] ?冽憭望?:', e.message);
-        showToast('?? TG ?冽憭望?嚗? + e.message);
+        console.warn('[TG] 推播失敗:', e.message);
+        showToast('⚠️ TG 推播失敗：' + e.message);
     }
 }
 
 async function testTGNotification() {
-    showToast('?? ???鞈?敺?凌?);
+    showToast('🔄 重新抓取資料後推播…');
     await fetchAllRTP();
 }
 
-/* ???????????????? ?湧??芸??湔 ???????????????? */
+/* ──────────────── 整點自動更新 ──────────────── */
 function scheduleNextFetch() {
     if (nextFetchTimer) clearTimeout(nextFetchTimer);
     const now = new Date();
@@ -581,25 +581,25 @@ function scheduleNextFetch() {
         fetchAllRTP();
     }, msToNextHour);
 
-    // 憿舐內銝活?湔??
+    // 顯示下次更新時間
     const nextTime = new Date(now.getTime() + msToNextHour);
     const h = String(nextTime.getHours()).padStart(2,'0');
     const m = String(nextTime.getMinutes()).padStart(2,'0');
-    document.getElementById('nextUpdateText').textContent = `銝活?湔嚗?{h}:${m}`;
+    document.getElementById('nextUpdateText').textContent = `下次更新：${h}:${m}`;
 }
 
-/* ???????????????? ?瑼餉??????????????????? */
+/* ──────────────── 門檻變更 ──────────────── */
 function onThresholdChange(val) {
     const v = parseFloat(val);
     if (isNaN(v) || v < 0) return;
     THRESHOLD = v;
     document.getElementById('statAlertLbl').innerHTML =
-        `雿?瑼鳴?撌株? &lt; ${THRESHOLD}嚗;
+        `低於門檻（差距 &lt; ${THRESHOLD}）`;
     localStorage.setItem('qrtpThreshold', THRESHOLD);
     render();
 }
 
-/* ???????????????? ???????????????????? */
+/* ──────────────── 初始化 ──────────────── */
 function init() {
     const savedThreshold = localStorage.getItem('qrtpThreshold');
     if (savedThreshold !== null) {
@@ -608,7 +608,7 @@ function init() {
             THRESHOLD = v;
             document.getElementById('thresholdInput').value = THRESHOLD;
             document.getElementById('statAlertLbl').innerHTML =
-                `雿?瑼鳴?撌株? &lt; ${THRESHOLD}嚗;
+                `低於門檻（差距 &lt; ${THRESHOLD}）`;
         }
     }
 
@@ -618,7 +618,7 @@ function init() {
             const parsed = JSON.parse(saved);
             rows   = parsed.rows || [];
             nextId = parsed.nextId || rows.length + 1;
-            // ???葉 currentRTP ?舀摮?靽??詨捆
+            // 舊資料中 currentRTP 是數字，保持相容
             rows.forEach(r => {
                 if (r.rtpStatus === undefined) r.rtpStatus = r.currentRTP !== null ? 'ok' : 'na';
             });
@@ -628,35 +628,36 @@ function init() {
     }
 
     const { dateStart, dateEnd } = getDateRange();
-    document.getElementById('dateRangeText').textContent = `${dateStart} 嚚?${dateEnd}`;
+    document.getElementById('dateRangeText').textContent = `${dateStart} ～ ${dateEnd}`;
 
     render();
-    fetchAllRTP(); // ?????單?銝甈?}
+    fetchAllRTP(); // 啟動時立即抓一次
+}
 
 function loadDefault() {
     nextId = 1;
     rows = DEFAULT.map(d => ({ id: nextId++, ...d, rtpStatus: 'na' }));
 }
 
-/* ???????????????? ?脣? ???????????????? */
+/* ──────────────── 儲存 ──────────────── */
 function saveData(silent = false) {
     const toSave = rows.map(({ apiRaw, ...rest }) => rest);
     localStorage.setItem('qrtpData', JSON.stringify({ rows: toSave, nextId }));
-    if (!silent) showToast('??鞈?撌脣摮?);
+    if (!silent) showToast('✅ 資料已儲存');
 }
 
 function clearAll() {
-    if (!confirm('蝣箏?皜????嗉???甇斗?雿瘜儔??)) return;
+    if (!confirm('確定清除所有商戶資料？此操作無法復原。')) return;
     rows = [];
     nextId = 1;
     localStorage.removeItem('qrtpData');
     render();
-    showToast('?? 撌脫??斗?????);
+    showToast('🗑 已清除所有資料');
 }
 
-/* ???????????????? ?啣? / ?芷 ???????????????? */
+/* ──────────────── 新增 / 刪除 ──────────────── */
 function addRow() {
-    rows.push({ id: nextId++, name: '?啣???, maxBonus: 0.000, currentRTP: null, rtpStatus: 'na' });
+    rows.push({ id: nextId++, name: '新商戶', maxBonus: 0.000, currentRTP: null, rtpStatus: 'na' });
     render();
     setTimeout(() => {
         const inputs = document.querySelectorAll('.name-input');
@@ -671,12 +672,12 @@ function deleteRow(id) {
     saveData(true);
 }
 
-/* ???????????????? ?湔鞈? ???????????????? */
+/* ──────────────── 更新資料 ──────────────── */
 function updateField(id, field, rawVal) {
     const row = rows.find(r => r.id === id);
     if (!row) return;
     if (field === 'name') {
-        row.name = rawVal.trim() || '?芸??;
+        row.name = rawVal.trim() || '未命名';
     } else {
         const v = parseFloat(rawVal);
         row[field] = isNaN(v) ? 0 : v;
@@ -705,10 +706,10 @@ function refreshRowCells(id) {
         const isAlert = diff < THRESHOLD;
         diffCell.textContent = diff.toFixed(3);
         diffCell.className   = 'diff-cell ' + (isAlert ? 'diff-alert' : diff < 0 ? 'diff-neg' : 'diff-ok');
-        threshCell.innerHTML = isAlert ? '<span class="badge-alert">??雿?瑼?/span>' : '';
+        threshCell.innerHTML = isAlert ? '<span class="badge-alert">⚠ 低於門檻</span>' : '';
         tr.className = isAlert ? 'row-alert' : '';
     } else {
-        diffCell.textContent = '??;
+        diffCell.textContent = '—';
         diffCell.className   = 'diff-cell diff-neg';
         threshCell.innerHTML = '';
         tr.className = '';
@@ -716,13 +717,13 @@ function refreshRowCells(id) {
 }
 
 function rtpCellHTML(row) {
-    if (row.rtpStatus === 'loading') return '<span class="rtp-loading">頛銝凌?/span>';
-    if (row.rtpStatus === 'error')   return '<span class="rtp-error">??憭望?</span>';
-    if (row.currentRTP === null || row.currentRTP === undefined) return '<span class="rtp-na">?∟???/span>';
+    if (row.rtpStatus === 'loading') return '<span class="rtp-loading">載入中…</span>';
+    if (row.rtpStatus === 'error')   return '<span class="rtp-error">抓取失敗</span>';
+    if (row.currentRTP === null || row.currentRTP === undefined) return '<span class="rtp-na">無資料</span>';
     return row.currentRTP.toFixed(3);
 }
 
-/* ???????????????? 蝯梯? ???????????????? */
+/* ──────────────── 統計 ──────────────── */
 function updateStats() {
     const total  = rows.length;
     const alerts = rows.filter(r => r.currentRTP !== null && r.currentRTP !== undefined && (r.maxBonus - r.currentRTP) < THRESHOLD).length;
@@ -731,13 +732,13 @@ function updateStats() {
     document.getElementById('statOk').textContent    = total - alerts;
 }
 
-/* ???????????????? 皜脫??渲” ???????????????? */
+/* ──────────────── 渲染整表 ──────────────── */
 function render() {
     const tbody = document.getElementById('tbody');
     tbody.innerHTML = '';
 
     if (rows.length === 0) {
-        tbody.innerHTML = `<tr class="empty-row"><td colspan="7">撠?鞈?嚗?暺? ?啣????憪?/td></tr>`;
+        tbody.innerHTML = `<tr class="empty-row"><td colspan="7">尚無商戶資料，請點「＋ 新增商戶」開始</td></tr>`;
         updateStats();
         return;
     }
@@ -758,7 +759,7 @@ function render() {
                 <input class="editable name-input"
                     type="text"
                     value="${escHtml(row.name)}"
-                    placeholder="??迂"
+                    placeholder="商戶名稱"
                     onchange="updateField(${row.id},'name',this.value)">
             </td>
             <td>
@@ -770,13 +771,13 @@ function render() {
             </td>
             <td class="rtp-cell">${rtpCellHTML(row)}</td>
             <td class="diff-cell ${isAlert ? 'diff-alert' : diff !== null && diff < 0 ? 'diff-neg' : 'diff-ok'}">
-                ${diff !== null ? diff.toFixed(3) : '??}
+                ${diff !== null ? diff.toFixed(3) : '—'}
             </td>
             <td class="thresh-cell">
-                ${isAlert ? '<span class="badge-alert">??雿?瑼?/span>' : ''}
+                ${isAlert ? '<span class="badge-alert">⚠ 低於門檻</span>' : ''}
             </td>
             <td>
-                <button class="del-btn" onclick="deleteRow(${row.id})">?芷</button>
+                <button class="del-btn" onclick="deleteRow(${row.id})">刪除</button>
             </td>
         `;
         tbody.appendChild(tr);
@@ -785,15 +786,15 @@ function render() {
     updateStats();
 }
 
-/* ???????????????? ?臬 CSV ???????????????? */
+/* ──────────────── 匯出 CSV ──────────────── */
 function exportCSV() {
     const { dateStart, dateEnd } = getDateRange();
-    const BOM = '嚜?;
-    const header = `??迂,?擃???,?嗅??嗆?RTP,?嗅?撌株?,雿?瑼?鞈???n`;
+    const BOM = '﻿';
+    const header = `商戶名稱,最高獎金號,當前當月RTP,當前差距,低於門檻,資料區間\n`;
     const body = rows.map(r => {
         const rtp  = r.currentRTP !== null && r.currentRTP !== undefined ? r.currentRTP.toFixed(3) : '';
         const diff = rtp ? (r.maxBonus - r.currentRTP).toFixed(3) : '';
-        const alert = (diff !== '' && (r.maxBonus - r.currentRTP) < THRESHOLD) ? '?? : '';
+        const alert = (diff !== '' && (r.maxBonus - r.currentRTP) < THRESHOLD) ? '是' : '';
         return `${r.name},${r.maxBonus.toFixed(3)},${rtp},${diff},${alert},${dateStart}~${dateEnd}`;
     }).join('\n');
 
@@ -801,13 +802,13 @@ function exportCSV() {
     const url  = URL.createObjectURL(blob);
     const a    = document.createElement('a');
     a.href     = url;
-    a.download = `憟閎RTP_${dateStart}_${dateEnd}.csv`;
+    a.download = `奇趣RTP_${dateStart}_${dateEnd}.csv`;
     a.click();
     URL.revokeObjectURL(url);
-    showToast('? CSV ?臬??');
+    showToast('📥 CSV 匯出成功');
 }
 
-/* ???????????????? 撌亙 ???????????????? */
+/* ──────────────── 工具 ──────────────── */
 function escHtml(s) {
     return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
@@ -821,9 +822,8 @@ function showToast(msg) {
     toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
 }
 
-/* ???????????????? ?? ???????????????? */
+/* ──────────────── 啟動 ──────────────── */
 init();
 </script>
 </body>
 </html>
-
