@@ -363,6 +363,23 @@
     </table>
 </div>
 
+<!-- 登入遮罩 -->
+<div id="loginOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;">
+    <div style="background:#fff;border-radius:12px;padding:40px 36px;width:340px;box-shadow:0 8px 32px rgba(0,0,0,0.25);text-align:center;">
+        <h2 style="margin-bottom:8px;color:#1a2a4a;font-size:1.3rem;">奇趣 RTP 管理工具</h2>
+        <p style="color:#888;font-size:0.85rem;margin-bottom:24px;">請輸入帳號密碼以繼續</p>
+        <input id="loginUser" type="text" placeholder="帳號" autocomplete="username"
+            style="width:100%;padding:10px 14px;margin-bottom:12px;border:1px solid #ddd;border-radius:8px;font-size:1rem;outline:none;">
+        <input id="loginPass" type="password" placeholder="密碼" autocomplete="current-password"
+            style="width:100%;padding:10px 14px;margin-bottom:16px;border:1px solid #ddd;border-radius:8px;font-size:1rem;outline:none;">
+        <div id="loginError" style="color:#e74c3c;font-size:0.85rem;min-height:20px;margin-bottom:12px;"></div>
+        <button id="loginBtn" onclick="doLogin()"
+            style="width:100%;padding:11px;background:#1a2a4a;color:#fff;border:none;border-radius:8px;font-size:1rem;cursor:pointer;">
+            登入
+        </button>
+    </div>
+</div>
+
 <div id="toast"></div>
 
 <script>
@@ -430,7 +447,7 @@ async function fetchAllRTP() {
     try {
         const res = await fetch(`${BACKEND_URL}/api/stats`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: authHeaders(),
             body: JSON.stringify({ platforms: rows.map(r => r.name), lotteryType: TARGET_LOTTERY, dateStart, dateEnd }),
         });
 
@@ -551,7 +568,7 @@ async function sendTGNotification(timeStr) {
     try {
         const res = await fetch(`${BACKEND_URL}/api/notify`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: authHeaders(),
             body: JSON.stringify({ text: msg }),
         });
         const result = await res.json();
@@ -822,8 +839,63 @@ function showToast(msg) {
     toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
 }
 
+/* ──────────────── 登入 ──────────────── */
+let SESSION_TOKEN = sessionStorage.getItem('rtp_token') || '';
+
+function authHeaders() {
+    return { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SESSION_TOKEN}` };
+}
+
+async function doLogin() {
+    const user = document.getElementById('loginUser').value.trim();
+    const pass = document.getElementById('loginPass').value;
+    const errEl = document.getElementById('loginError');
+    const btn   = document.getElementById('loginBtn');
+
+    if (!user || !pass) { errEl.textContent = '請輸入帳號與密碼'; return; }
+
+    btn.disabled = true;
+    btn.textContent = '驗證中…';
+    errEl.textContent = '';
+
+    try {
+        const res = await fetch(`${BACKEND_URL}/api/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username: user, password: pass }),
+        });
+        const data = await res.json();
+        if (res.ok && data.token) {
+            SESSION_TOKEN = data.token;
+            sessionStorage.setItem('rtp_token', SESSION_TOKEN);
+            document.getElementById('loginOverlay').style.display = 'none';
+            init();
+        } else {
+            errEl.textContent = data.error || '登入失敗';
+        }
+    } catch (e) {
+        errEl.textContent = '網路錯誤，請重試';
+    }
+
+    btn.disabled = false;
+    btn.textContent = '登入';
+}
+
+// Enter 鍵觸發登入
+document.getElementById('loginPass').addEventListener('keydown', e => {
+    if (e.key === 'Enter') doLogin();
+});
+document.getElementById('loginUser').addEventListener('keydown', e => {
+    if (e.key === 'Enter') document.getElementById('loginPass').focus();
+});
+
 /* ──────────────── 啟動 ──────────────── */
-init();
+if (SESSION_TOKEN) {
+    document.getElementById('loginOverlay').style.display = 'none';
+    init();
+} else {
+    document.getElementById('loginOverlay').style.display = 'flex';
+}
 </script>
 </body>
 </html>

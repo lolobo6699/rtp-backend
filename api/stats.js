@@ -1,9 +1,17 @@
 const { ProxyAgent, fetch: proxyFetch } = require('undici');
+const crypto = require('crypto');
 
 const STATS_API      = process.env.STATS_API_URL;
 const ALLOWED_ORIGIN = 'https://rtp-wffq.vercel.app';
 
-// 從 request stream 手動讀取原始 body
+function verifyToken(token) {
+    const secret = process.env.STATS_API_KEY || 'fallback';
+    const expected = crypto.createHmac('sha256', secret)
+        .update(`${process.env.LOGIN_USER}:${process.env.LOGIN_PASS}`)
+        .digest('hex');
+    return token === expected;
+}
+
 function readRawBody(req) {
     return new Promise((resolve, reject) => {
         let data = '';
@@ -15,19 +23,24 @@ function readRawBody(req) {
 
 module.exports = async function handler(req, res) {
     const origin = req.headers['origin'] || '';
-
-    // CORS 白名單：只允許 Vercel 前端（同源請求無 origin header 也放行）
     if (origin && origin !== ALLOWED_ORIGIN) {
         return res.status(403).json({ error: 'Forbidden: origin not allowed' });
     }
 
     res.setHeader('Access-Control-Allow-Origin', ALLOWED_ORIGIN);
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
     res.setHeader('Vary', 'Origin');
 
     if (req.method === 'OPTIONS') return res.status(200).end();
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+    // Token 驗證
+    const auth = req.headers['authorization'] || '';
+    const token = auth.replace('Bearer ', '').trim();
+    if (!verifyToken(token)) {
+        return res.status(401).json({ error: '未授權，請重新登入' });
+    }
 
     try {
         let body;
