@@ -489,8 +489,8 @@ async function fetchAllRTP() {
         for (const r of rows) {
             const s = statMap[r.name];
             if (s) {
-                // 直接使用 API 回傳的 RTP 欄位（與後台完全一致）
-                r.currentRTP = s.rtp;
+                // 優先使用 API 回傳的 RTP 欄位；null 時退回自算 (奖金+返点)/销量
+                r.currentRTP = s.rtp !== null ? s.rtp : (s.bet > 0 ? (s.bonus + s.rebate) / s.bet : null);
                 r.rtpStatus  = r.currentRTP !== null ? 'ok' : 'na';
                 r.apiRaw     = s;
             } else {
