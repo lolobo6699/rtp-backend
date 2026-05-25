@@ -39,8 +39,8 @@ function getDateRange() {
 }
 
 module.exports = async function handler(req, res) {
-    // 每次請求時即時讀取環境變數
-    const cronSecret = process.env.CRON_SECRET;
+    // 每次請求時即時讀取環境變數（trim 去除多餘空白）
+    const cronSecret = (process.env.CRON_SECRET || '').trim();
     const statsApi   = process.env.STATS_API_URL;
 
     // 驗證 CRON_SECRET
