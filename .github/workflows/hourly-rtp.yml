@@ -1,0 +1,17 @@
+name: 每小時 RTP 推播
+
+on:
+  schedule:
+    - cron: '0 * * * *'   # 每小時整點觸發（UTC）
+  workflow_dispatch:        # 支援手動觸發（測試用）
+
+jobs:
+  trigger-rtp-cron:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 呼叫 Vercel cron 端點
+        run: |
+          curl -s -X POST https://rtp-wffq.vercel.app/api/cron \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json" \
+            --fail-with-body
