@@ -1,7 +1,5 @@
 const { ProxyAgent, fetch: proxyFetch } = require('undici');
 
-const STATS_API      = process.env.STATS_API_URL;
-const CRON_SECRET    = process.env.CRON_SECRET;
 const TARGET_LOTTERY = '奇趣腾讯分分彩';
 const THRESHOLD      = 0.012;
 
@@ -41,9 +39,13 @@ function getDateRange() {
 }
 
 module.exports = async function handler(req, res) {
+    // 每次請求時即時讀取環境變數
+    const cronSecret = process.env.CRON_SECRET;
+    const statsApi   = process.env.STATS_API_URL;
+
     // 驗證 CRON_SECRET
     const auth = (req.headers['authorization'] || '').replace('Bearer ', '').trim();
-    if (!CRON_SECRET || auth !== CRON_SECRET) {
+    if (!cronSecret || auth !== cronSecret) {
         return res.status(401).json({ error: 'Unauthorized' });
     }
 
@@ -66,9 +68,9 @@ module.exports = async function handler(req, res) {
         let response;
         if (proxyUrl) {
             const dispatcher = new ProxyAgent(proxyUrl);
-            response = await proxyFetch(`${STATS_API}/api/v1/lottery-stats`, { ...fetchOptions, dispatcher });
+            response = await proxyFetch(`${statsApi}/api/v1/lottery-stats`, { ...fetchOptions, dispatcher });
         } else {
-            response = await fetch(`${STATS_API}/api/v1/lottery-stats`, fetchOptions);
+            response = await fetch(`${statsApi}/api/v1/lottery-stats`, fetchOptions);
         }
 
         const data = await response.json();
