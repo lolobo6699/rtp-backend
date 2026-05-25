@@ -31,10 +31,11 @@ function getTaiwanDate() {
     // UTC+8 台灣時間
     const now = new Date(Date.now() + 8 * 60 * 60 * 1000);
     return {
-        year:  now.getUTCFullYear(),
-        month: String(now.getUTCMonth() + 1).padStart(2, '0'),
-        day:   String(now.getUTCDate()).padStart(2, '0'),
-        hour:  String(now.getUTCHours()).padStart(2, '0'),
+        year:   now.getUTCFullYear(),
+        month:  String(now.getUTCMonth() + 1).padStart(2, '0'),
+        day:    String(now.getUTCDate()).padStart(2, '0'),
+        hour:   String(now.getUTCHours()).padStart(2, '0'),
+        minute: String(now.getUTCMinutes()).padStart(2, '0'),
     };
 }
 
@@ -62,6 +63,12 @@ module.exports = async function handler(req, res) {
 
     if (req.method !== 'POST' && req.method !== 'GET') {
         return res.status(405).json({ error: 'Method not allowed' });
+    }
+
+    // 台灣 03:00 跳過，改由 03:05 單獨觸發
+    const { hour, minute } = getTaiwanDate();
+    if (hour === '03' && minute === '00') {
+        return res.status(200).json({ ok: true, skipped: true, reason: '台灣 03:00 跳過，由 03:05 觸發' });
     }
 
     try {
