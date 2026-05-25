@@ -471,6 +471,11 @@ async function fetchAllRTP() {
             const lotteryName = (row['彩种'] || '').trim();
             if (lotteryName === TARGET_LOTTERY) {
                 if (!statMap[p]) statMap[p] = { rtp: null, bonus: 0, bet: 0, rebate: 0, profit: 0 };
+                // debug：印出 XY/OL/XH/LS 的原始欄位，確認 RTP 欄位名稱
+                if (['XY','OL','XH','LS'].includes(p) && !statMap[p]._logged) {
+                    console.log(`[FIELD DEBUG] ${p} 原始欄位:`, JSON.stringify(row));
+                    statMap[p]._logged = true;
+                }
                 if (row['RTP'] != null) statMap[p].rtp = parseNum(row['RTP']);
                 statMap[p].bonus  += parseNum(row['奖金']);
                 statMap[p].bet    += parseNum(row['销量'] ?? row['投注金额']);
