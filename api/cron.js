@@ -143,6 +143,20 @@ module.exports = async function handler(req, res) {
 
         res.status(200).json({ ok: true, alerts: alertRows.length, tg: tgData.ok });
     } catch (err) {
+        // API 無法連線或維護中 → 仍推播 TG 告知
+        try {
+            const { year, month, day, hour } = getTaiwanDate();
+            const timeStr = `${year}-${month}-${day} ${hour}:00`;
+            const errMsg  = `🔴 資料來源無法連線\n時間：${timeStr}\n原因：${err.message}\n\n可能正在維護，請稍後確認。`;
+            await fetch(
+                `https://api.telegram.org/bot${process.env.TG_TOKEN}/sendMessage`,
+                {
+                    method:  'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body:    JSON.stringify({ chat_id: process.env.TG_CHAT_ID, text: errMsg }),
+                }
+            );
+        } catch (_) { /* TG 也失敗就放棄 */ }
         res.status(500).json({ error: err.message });
     }
 };
