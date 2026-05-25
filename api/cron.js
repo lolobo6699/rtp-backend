@@ -45,8 +45,11 @@ module.exports = async function handler(req, res) {
 
     // 驗證 CRON_SECRET
     const auth = (req.headers['authorization'] || '').replace('Bearer ', '').trim();
-    if (!cronSecret || auth !== cronSecret) {
-        return res.status(401).json({ error: 'Unauthorized' });
+    if (!cronSecret) {
+        return res.status(401).json({ error: 'env_not_set', len: 0 });
+    }
+    if (auth !== cronSecret) {
+        return res.status(401).json({ error: 'token_mismatch', secretLen: cronSecret.length, authLen: auth.length });
     }
 
     if (req.method !== 'POST' && req.method !== 'GET') {
