@@ -27,11 +27,19 @@ function parseNum(v) {
     return parseFloat(String(v).replace(/,/g, '')) || 0;
 }
 
+function getTaiwanDate() {
+    // UTC+8 台灣時間
+    const now = new Date(Date.now() + 8 * 60 * 60 * 1000);
+    return {
+        year:  now.getUTCFullYear(),
+        month: String(now.getUTCMonth() + 1).padStart(2, '0'),
+        day:   String(now.getUTCDate()).padStart(2, '0'),
+        hour:  String(now.getUTCHours()).padStart(2, '0'),
+    };
+}
+
 function getDateRange() {
-    const now   = new Date();
-    const year  = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day   = String(now.getDate()).padStart(2, '0');
+    const { year, month, day } = getTaiwanDate();
     return {
         dateStart: `${year}-${month}-01`,
         dateEnd:   `${year}-${month}-${day}`,
@@ -104,9 +112,9 @@ module.exports = async function handler(req, res) {
             }
         }
 
-        // 組 TG 訊息
-        const now     = new Date();
-        const timeStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:00`;
+        // 組 TG 訊息（台灣時間 UTC+8）
+        const { year, month, day, hour } = getTaiwanDate();
+        const timeStr = `${year}-${month}-${day} ${hour}:00`;
         let msg = '';
         if (alertRows.length === 0) {
             msg = `✅ ${timeStr}\n全部商戶 RTP 正常，無異常。`;
