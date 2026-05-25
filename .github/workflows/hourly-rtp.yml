@@ -2,8 +2,7 @@ name: 每小時 RTP 推播
 
 on:
   schedule:
-    - cron: '0 0-18,20-23 * * *'   # 每小時整點（UTC），排除 UTC 19:00（台灣 03:00）
-    - cron: '5 19 * * *'            # UTC 19:05 = 台灣 03:05 單獨觸發
+    - cron: '0 * * * *'   # 每小時整點觸發
   workflow_dispatch:        # 支援手動觸發（測試用）
 
 jobs:
