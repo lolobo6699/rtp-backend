@@ -124,8 +124,8 @@ module.exports = async function handler(req, res) {
         }
 
         // 組 TG 訊息（台灣時間 UTC+8）
-        const { year, month, day, hour } = getTaiwanDate();
-        const timeStr = `${year}-${month}-${day} ${hour}:00`;
+        const { year, month, day, hour, minute } = getTaiwanDate();
+        const timeStr = `${year}-${month}-${day} ${hour}:${minute}`;
         let msg = '';
         if (alertRows.length === 0) {
             msg = `✅ ${timeStr}\n全部商戶 RTP 正常，無異常。`;
@@ -156,8 +156,8 @@ module.exports = async function handler(req, res) {
     } catch (err) {
         // API 無法連線或維護中 → 仍推播 TG 告知
         try {
-            const { year, month, day, hour } = getTaiwanDate();
-            const timeStr = `${year}-${month}-${day} ${hour}:00`;
+            const { year, month, day, hour, minute } = getTaiwanDate();
+            const timeStr = `${year}-${month}-${day} ${hour}:${minute}`;
             const errMsg  = `🔴 資料來源無法連線\n時間：${timeStr}\n原因：${err.message}\n\n可能正在維護，請稍後確認。`;
             await fetch(
                 `https://api.telegram.org/bot${process.env.TG_TOKEN}/sendMessage`,
