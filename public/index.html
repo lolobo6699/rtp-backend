@@ -502,7 +502,6 @@ async function fetchAllRTP() {
         setApiStatus('ok', `最後更新：${timeStr}`);
         showToast('✅ 資料更新完成');
         saveData(true);
-        sendTGNotification(timeStr);
 
     } catch (err) {
         for (const r of rows) r.rtpStatus = 'error';
