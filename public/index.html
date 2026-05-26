@@ -590,6 +590,9 @@ async function sendTGNotification(timeStr) {
 async function testTGNotification() {
     showToast('🔄 重新抓取資料後推播…');
     await fetchAllRTP();
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString('zh-TW', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+    await sendTGNotification(timeStr);
 }
 
 /* ──────────────── 整點自動更新 ──────────────── */
