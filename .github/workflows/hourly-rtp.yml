@@ -1,10 +1,9 @@
 name: 每小時 RTP 推播
 
 on:
-  schedule:
-    - cron: '0 0-18,20-23 * * *'   # 每小時整點，排除台灣 03:00
-    - cron: '5 19 * * *'            # 台灣 03:05 單獨觸發
-  workflow_dispatch:        # 支援手動觸發（測試用）
+  # schedule 已停用：GitHub Actions 排程延遲 30-60 分鐘不穩定
+  # 改由 cron-job.org 外部觸發，準時且可靠
+  workflow_dispatch:        # 保留手動觸發（測試用）
 
 jobs:
   trigger-rtp-cron:
