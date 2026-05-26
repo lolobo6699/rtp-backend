@@ -66,13 +66,9 @@ module.exports = async function handler(req, res) {
     }
 
     // 台灣 03:00 跳過，改由 03:05 單獨觸發
-    // 台灣 17:00 跳過，改由 17:05 單獨觸發（測試用）
     const { hour, minute } = getTaiwanDate();
     if (hour === '03' && minute === '00') {
         return res.status(200).json({ ok: true, skipped: true, reason: '台灣 03:00 跳過，由 03:05 觸發' });
-    }
-    if (hour === '17' && minute === '00') {
-        return res.status(200).json({ ok: true, skipped: true, reason: '台灣 17:00 跳過，由 17:05 觸發（測試）' });
     }
 
     try {
