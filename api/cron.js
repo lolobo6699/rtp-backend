@@ -20,6 +20,7 @@ const MERCHANTS = [
     { name:'YS',  maxBonus:0.989 },
     { name:'JY',  maxBonus:0.994 },
     { name:'HS',  maxBonus:0.999 },
+    { name:'RF',  maxBonus:0.999 },
 ];
 
 function parseNum(v) {
