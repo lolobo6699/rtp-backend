@@ -66,12 +66,6 @@ module.exports = async function handler(req, res) {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
-    // 台灣 03:00 跳過，改由 03:05 單獨觸發
-    const { hour, minute } = getTaiwanDate();
-    if (hour === '03' && minute === '00') {
-        return res.status(200).json({ ok: true, skipped: true, reason: '台灣 03:00 跳過，由 03:05 觸發' });
-    }
-
     try {
         const { dateStart, dateEnd } = getDateRange();
         const platforms = MERCHANTS.map(m => m.name);
