@@ -76,16 +76,27 @@ module.exports = async function handler(req, res) {
             method:  'POST',
             headers: { 'X-Api-Key': apiKey, 'Content-Type': 'application/json' },
             body:    JSON.stringify({ platforms, lotteryType: TARGET_LOTTERY, dateStart, dateEnd }),
-            signal:  AbortSignal.timeout(25000),
         };
 
+        // 最多重試 3 次，每次 15 秒超時，全部失敗才推 🔴
         let response;
-        if (proxyUrl) {
-            const dispatcher = new ProxyAgent(proxyUrl);
-            response = await proxyFetch(`${statsApi}/api/v1/lottery-stats`, { ...fetchOptions, dispatcher });
-        } else {
-            response = await fetch(`${statsApi}/api/v1/lottery-stats`, fetchOptions);
+        let lastErr;
+        for (let attempt = 1; attempt <= 3; attempt++) {
+            try {
+                const opts = { ...fetchOptions, signal: AbortSignal.timeout(15000) };
+                if (proxyUrl) {
+                    const dispatcher = new ProxyAgent(proxyUrl);
+                    response = await proxyFetch(`${statsApi}/api/v1/lottery-stats`, { ...opts, dispatcher });
+                } else {
+                    response = await fetch(`${statsApi}/api/v1/lottery-stats`, opts);
+                }
+                lastErr = null;
+                break;
+            } catch (err) {
+                lastErr = err;
+            }
         }
+        if (lastErr) throw lastErr;
 
         const data = await response.json();
 
