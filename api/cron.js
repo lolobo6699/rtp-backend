@@ -76,6 +76,7 @@ module.exports = async function handler(req, res) {
             method:  'POST',
             headers: { 'X-Api-Key': apiKey, 'Content-Type': 'application/json' },
             body:    JSON.stringify({ platforms, lotteryType: TARGET_LOTTERY, dateStart, dateEnd }),
+            signal:  AbortSignal.timeout(25000),
         };
 
         let response;
