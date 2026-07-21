@@ -1,4 +1,5 @@
 const { ProxyAgent, fetch: proxyFetch } = require('undici');
+const { neon } = require('@neondatabase/serverless');
 
 const TARGET_LOTTERY = '奇趣腾讯分分彩';
 const THRESHOLD      = 0.012;
@@ -29,7 +30,6 @@ function parseNum(v) {
 }
 
 function getTaiwanDate() {
-    // UTC+8 台灣時間
     const now = new Date(Date.now() + 8 * 60 * 60 * 1000);
     return {
         year:   now.getUTCFullYear(),
@@ -49,11 +49,9 @@ function getDateRange() {
 }
 
 module.exports = async function handler(req, res) {
-    // 每次請求時即時讀取環境變數（trim 去除多餘空白）
     const cronSecret = (process.env.CRON_SECRET || '').trim();
     const statsApi   = process.env.STATS_API_URL;
 
-    // 驗證 CRON_SECRET
     const auth = (req.headers['authorization'] || '').replace('Bearer ', '').trim();
     if (!cronSecret) {
         return res.status(401).json({ error: 'env_not_set', len: 0 });
@@ -64,6 +62,20 @@ module.exports = async function handler(req, res) {
 
     if (req.method !== 'POST' && req.method !== 'GET') {
         return res.status(405).json({ error: 'Method not allowed' });
+    }
+
+    // 防重複：同一小時只推一次
+    const { year, month, day, hour } = getTaiwanDate();
+    const hourKey = `${year}-${month}-${day}-${hour}`;
+    const sql = neon(process.env.DATABASE_URL);
+
+    try {
+        const existing = await sql`SELECT 1 FROM rtp_push_log WHERE hour_key = ${hourKey} LIMIT 1`;
+        if (existing.length > 0) {
+            return res.status(200).json({ ok: true, skipped: true, reason: '本小時已推播' });
+        }
+    } catch (_) {
+        // DB 查詢失敗不阻擋，繼續執行
     }
 
     try {
@@ -116,8 +128,8 @@ module.exports = async function handler(req, res) {
             }
         }
 
-        // 組 TG 訊息（台灣時間 UTC+8）
-        const { year, month, day, hour, minute } = getTaiwanDate();
+        // 組 TG 訊息
+        const { minute } = getTaiwanDate();
         const timeStr = `${year}-${month}-${day} ${hour}:${minute}`;
         let msg = '';
         if (alertRows.length === 0) {
@@ -144,6 +156,11 @@ module.exports = async function handler(req, res) {
             }
         );
         const tgData = await tgRes.json();
+
+        // 寫入推播紀錄
+        try {
+            await sql`INSERT INTO rtp_push_log (hour_key) VALUES (${hourKey}) ON CONFLICT DO NOTHING`;
+        } catch (_) {}
 
         res.status(200).json({ ok: true, alerts: alertRows.length, tg: tgData.ok });
     } catch (err) {
