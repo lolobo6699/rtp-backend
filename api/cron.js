@@ -78,25 +78,15 @@ module.exports = async function handler(req, res) {
             body:    JSON.stringify({ platforms, lotteryType: TARGET_LOTTERY, dateStart, dateEnd }),
         };
 
-        // 最多重試 3 次，每次 15 秒超時，全部失敗才推 🔴
+        // 單次請求，50 秒超時
         let response;
-        let lastErr;
-        for (let attempt = 1; attempt <= 3; attempt++) {
-            try {
-                const opts = { ...fetchOptions, signal: AbortSignal.timeout(15000) };
-                if (proxyUrl) {
-                    const dispatcher = new ProxyAgent(proxyUrl);
-                    response = await proxyFetch(`${statsApi}/api/v1/lottery-stats`, { ...opts, dispatcher });
-                } else {
-                    response = await fetch(`${statsApi}/api/v1/lottery-stats`, opts);
-                }
-                lastErr = null;
-                break;
-            } catch (err) {
-                lastErr = err;
-            }
+        const opts = { ...fetchOptions, signal: AbortSignal.timeout(50000) };
+        if (proxyUrl) {
+            const dispatcher = new ProxyAgent(proxyUrl);
+            response = await proxyFetch(`${statsApi}/api/v1/lottery-stats`, { ...opts, dispatcher });
+        } else {
+            response = await fetch(`${statsApi}/api/v1/lottery-stats`, opts);
         }
-        if (lastErr) throw lastErr;
 
         const data = await response.json();
 
@@ -157,20 +147,6 @@ module.exports = async function handler(req, res) {
 
         res.status(200).json({ ok: true, alerts: alertRows.length, tg: tgData.ok });
     } catch (err) {
-        // API 無法連線或維護中 → 仍推播 TG 告知
-        try {
-            const { year, month, day, hour, minute } = getTaiwanDate();
-            const timeStr = `${year}-${month}-${day} ${hour}:${minute}`;
-            const errMsg  = `🔴 資料來源無法連線\n時間：${timeStr}\n原因：${err.message}\n\n可能正在維護，請稍後確認。`;
-            await fetch(
-                `https://api.telegram.org/bot${process.env.TG_TOKEN}/sendMessage`,
-                {
-                    method:  'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body:    JSON.stringify({ chat_id: process.env.TG_CHAT_ID, text: errMsg }),
-                }
-            );
-        } catch (_) { /* TG 也失敗就放棄 */ }
         res.status(500).json({ error: err.message });
     }
 };
