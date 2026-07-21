@@ -21,9 +21,11 @@ module.exports = async function handler(req, res) {
             }),
             signal: AbortSignal.timeout(30000),
         });
-        const ms = Date.now() - start;
-        const data = await r.json();
-        return res.json({ ok: true, ms, status: r.status, rows: (data.rows || []).length });
+        const ms   = Date.now() - start;
+        const text = await r.text();
+        let data;
+        try { data = JSON.parse(text); } catch (_) { data = null; }
+        return res.json({ ok: true, ms, status: r.status, rows: data ? (data.rows || []).length : null, raw: text.slice(0, 300) });
     } catch (err) {
         const ms = Date.now() - start;
         return res.json({ ok: false, ms, error: err.message });
