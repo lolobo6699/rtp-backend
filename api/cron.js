@@ -64,18 +64,18 @@ module.exports = async function handler(req, res) {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
-    // 防重複：同一小時只推一次
+    // 防重複：先搶先得，INSERT 成功才執行推播
     const { year, month, day, hour } = getTaiwanDate();
     const hourKey = `${year}-${month}-${day}-${hour}`;
     const sql = neon(process.env.DATABASE_URL);
 
     try {
-        const existing = await sql`SELECT 1 FROM rtp_push_log WHERE hour_key = ${hourKey} LIMIT 1`;
-        if (existing.length > 0) {
+        const result = await sql`INSERT INTO rtp_push_log (hour_key) VALUES (${hourKey}) ON CONFLICT DO NOTHING`;
+        if (result.count === 0) {
             return res.status(200).json({ ok: true, skipped: true, reason: '本小時已推播' });
         }
     } catch (_) {
-        // DB 查詢失敗不阻擋，繼續執行
+        // DB 失敗不阻擋，繼續執行
     }
 
     try {
@@ -156,11 +156,6 @@ module.exports = async function handler(req, res) {
             }
         );
         const tgData = await tgRes.json();
-
-        // 寫入推播紀錄
-        try {
-            await sql`INSERT INTO rtp_push_log (hour_key) VALUES (${hourKey}) ON CONFLICT DO NOTHING`;
-        } catch (_) {}
 
         res.status(200).json({ ok: true, alerts: alertRows.length, tg: tgData.ok });
     } catch (err) {
