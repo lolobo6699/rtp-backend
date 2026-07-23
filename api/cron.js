@@ -70,8 +70,8 @@ module.exports = async function handler(req, res) {
     const sql = neon(process.env.DATABASE_URL);
 
     try {
-        const result = await sql`INSERT INTO rtp_push_log (hour_key) VALUES (${hourKey}) ON CONFLICT DO NOTHING`;
-        if (result.count === 0) {
+        const result = await sql`INSERT INTO rtp_push_log (hour_key) VALUES (${hourKey}) ON CONFLICT DO NOTHING RETURNING hour_key`;
+        if (result.length === 0) {
             return res.status(200).json({ ok: true, skipped: true, reason: '本小時已推播' });
         }
     } catch (_) {
