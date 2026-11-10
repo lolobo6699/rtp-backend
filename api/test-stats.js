@@ -16,8 +16,8 @@ module.exports = async function handler(req, res) {
             body:    JSON.stringify({
                 platforms:   ['XO'],
                 lotteryType: '奇趣腾讯分分彩',
-                dateStart:   '2026-07-01',
-                dateEnd:     '2026-07-21',
+                dateStart:   '2026-11-01',
+                dateEnd:     '2026-11-10',
             }),
             signal: AbortSignal.timeout(30000),
         });
