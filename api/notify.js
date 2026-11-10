@@ -1,7 +1,5 @@
 const crypto = require('crypto');
 
-const ALLOWED_ORIGIN = 'https://rtp-wffq.vercel.app';
-
 const rateLimitMap = new Map();
 const RATE_LIMIT   = 5;
 const WINDOW_MS    = 60 * 1000;
@@ -27,20 +25,8 @@ function verifyToken(token) {
 }
 
 module.exports = async function handler(req, res) {
-    const origin = req.headers['origin'] || '';
-    if (origin && origin !== ALLOWED_ORIGIN) {
-        return res.status(403).json({ error: 'Forbidden: origin not allowed' });
-    }
-
-    res.setHeader('Access-Control-Allow-Origin', ALLOWED_ORIGIN);
-    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-    res.setHeader('Vary', 'Origin');
-
-    if (req.method === 'OPTIONS') return res.status(200).end();
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-    // Token 驗證
     const auth = req.headers['authorization'] || '';
     const token = auth.replace('Bearer ', '').trim();
     if (!verifyToken(token)) {
@@ -53,20 +39,15 @@ module.exports = async function handler(req, res) {
     }
 
     try {
-        let body = req.body;
-        if (!body || typeof body !== 'object') {
-            try { body = JSON.parse(body); } catch (e) { body = {}; }
-        }
-
-        const { text } = body;
+        const { text } = req.body || {};
         if (!text) return res.status(400).json({ error: 'Missing text field' });
 
         const response = await fetch(
             `https://api.telegram.org/bot${process.env.TG_TOKEN}/sendMessage`,
             {
-                method: 'POST',
+                method:  'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ chat_id: process.env.TG_CHAT_ID, text }),
+                body:    JSON.stringify({ chat_id: process.env.TG_CHAT_ID, text }),
             }
         );
         const data = await response.json();

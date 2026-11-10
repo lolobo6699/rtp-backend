@@ -1,0 +1,44 @@
+[deploy]
+startCommand = "node server.js"
+healthcheckPath = "/api/ping"
+healthcheckTimeout = 30
+
+# 推播排程（台灣時間 UTC+8，以下全部 UTC 時間）
+# 13:00 台灣 = 05:00 UTC
+[[crons]]
+schedule = "0 5 * * *"
+command   = "node run-push.js"
+
+[[crons]]
+schedule = "1 5 * * *"
+command   = "node run-push.js"
+
+[[crons]]
+schedule = "2 5 * * *"
+command   = "node run-push.js"
+
+# 22:00 台灣 = 14:00 UTC
+[[crons]]
+schedule = "0 14 * * *"
+command   = "node run-push.js"
+
+[[crons]]
+schedule = "1 14 * * *"
+command   = "node run-push.js"
+
+[[crons]]
+schedule = "2 14 * * *"
+command   = "node run-push.js"
+
+# 03:15 台灣 = 19:15 UTC
+[[crons]]
+schedule = "15 19 * * *"
+command   = "node run-push.js"
+
+[[crons]]
+schedule = "16 19 * * *"
+command   = "node run-push.js"
+
+[[crons]]
+schedule = "17 19 * * *"
+command   = "node run-push.js"
