@@ -397,26 +397,25 @@ let nextId = 1;
 let isFetching = false;
 let nextFetchTimer = null;
 
-/* ──────────────── 預設資料 ──────────────── */
-const DEFAULT = [
-    { name:'XO',  maxBonus:0.988, currentRTP:null },
-    { name:'XH',  maxBonus:0.989, currentRTP:null },
-    { name:'LS',  maxBonus:0.991, currentRTP:null },
-    { name:'OL',  maxBonus:0.990, currentRTP:null },
-    { name:'XY',  maxBonus:0.994, currentRTP:null },
-    { name:'FB',  maxBonus:0.988, currentRTP:null },
-    { name:'MT',  maxBonus:0.992, currentRTP:null },
-    { name:'JD',  maxBonus:0.990, currentRTP:null },
-    { name:'ND',  maxBonus:0.999, currentRTP:null },
-    { name:'YD',  maxBonus:0.998, currentRTP:null },
-    { name:'SH',  maxBonus:0.988, currentRTP:null },
-    { name:'YS',  maxBonus:0.989, currentRTP:null },
-    { name:'JY',  maxBonus:0.994, currentRTP:null },
-    { name:'HS',  maxBonus:0.999, currentRTP:null },
-    { name:'RF',  maxBonus:0.999, currentRTP:null },
-    { name:'TD',  maxBonus:0.998, currentRTP:null },
-    { name:'DS',  maxBonus:0.999, currentRTP:null },
-];
+/* ──────────────── 商戶從 DB 載入 ──────────────── */
+async function loadMerchantsFromDB() {
+    try {
+        const res = await fetch(`${BACKEND_URL}/api/merchants`, { headers: authHeaders() });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const data = await res.json();
+        nextId = 1;
+        rows = (data.merchants || []).map(m => ({
+            id: nextId++,
+            name: m.name,
+            maxBonus: parseFloat(m.max_bonus ?? m.maxBonus),
+            currentRTP: null,
+            rtpStatus: 'na'
+        }));
+    } catch (e) {
+        showToast('⚠️ 商戶載入失敗：' + e.message);
+        rows = [];
+    }
+}
 
 /* ──────────────── 日期區間：本月1號 → 今天 ──────────────── */
 function getDateRange() {
@@ -629,7 +628,7 @@ function onThresholdChange(val) {
 }
 
 /* ──────────────── 初始化 ──────────────── */
-function init() {
+async function init() {
     const savedThreshold = localStorage.getItem('qrtpThreshold');
     if (savedThreshold !== null) {
         const v = parseFloat(savedThreshold);
@@ -641,82 +640,92 @@ function init() {
         }
     }
 
-    const saved = localStorage.getItem('qrtpData');
-    if (saved) {
-        try {
-            const parsed = JSON.parse(saved);
-            rows   = parsed.rows || [];
-            nextId = parsed.nextId || rows.length + 1;
-            // 舊資料中 currentRTP 是數字，保持相容
-            rows.forEach(r => {
-                if (r.rtpStatus === undefined) r.rtpStatus = r.currentRTP !== null ? 'ok' : 'na';
-            });
-            // 自動補齊 DEFAULT 裡缺少的商戶（防止切換網域後遺漏）
-            const existingNames = new Set(rows.map(r => r.name));
-            DEFAULT.forEach(d => {
-                if (!existingNames.has(d.name)) {
-                    rows.push({ id: nextId++, ...d, rtpStatus: 'na' });
-                }
-            });
-        } catch(e) { loadDefault(); }
-    } else {
-        loadDefault();
-    }
-
     const { dateStart, dateEnd } = getDateRange();
     document.getElementById('dateRangeText').textContent = `${dateStart} ～ ${dateEnd}`;
 
+    await loadMerchantsFromDB();
     render();
-    fetchAllRTP(); // 啟動時立即抓一次
+    fetchAllRTP();
 }
 
-function loadDefault() {
-    nextId = 1;
-    rows = DEFAULT.map(d => ({ id: nextId++, ...d, rtpStatus: 'na' }));
-}
-
-/* ──────────────── 儲存 ──────────────── */
+/* ──────────────── 儲存（僅保留 threshold） ──────────────── */
 function saveData(silent = false) {
-    const toSave = rows.map(({ apiRaw, ...rest }) => rest);
-    localStorage.setItem('qrtpData', JSON.stringify({ rows: toSave, nextId }));
-    if (!silent) showToast('✅ 資料已儲存');
+    if (!silent) showToast('✅ 商戶資料已同步至資料庫');
 }
 
-function clearAll() {
-    if (!confirm('確定清除所有商戶資料？此操作無法復原。')) return;
+async function clearAll() {
+    if (!confirm('確定從資料庫移除所有商戶？此操作無法復原。')) return;
+    for (const r of [...rows]) {
+        await fetch(`${BACKEND_URL}/api/merchants/${r.name}`, {
+            method: 'DELETE', headers: authHeaders()
+        });
+    }
     rows = [];
     nextId = 1;
-    localStorage.removeItem('qrtpData');
     render();
-    showToast('🗑 已清除所有資料');
+    showToast('🗑 已清除所有商戶');
 }
 
 /* ──────────────── 新增 / 刪除 ──────────────── */
-function addRow() {
-    rows.push({ id: nextId++, name: '新商戶', maxBonus: 0.000, currentRTP: null, rtpStatus: 'na' });
-    render();
-    setTimeout(() => {
-        const inputs = document.querySelectorAll('.name-input');
-        const last = inputs[inputs.length - 1];
-        if (last) { last.focus(); last.select(); }
-    }, 30);
+async function addRow() {
+    const name = prompt('商戶代號（大寫英文，例如 AB）：');
+    if (!name || !name.trim()) return;
+    const bonusStr = prompt('最高獎金號（例如 0.990）：');
+    const maxBonus = parseFloat(bonusStr);
+    if (isNaN(maxBonus) || maxBonus <= 0 || maxBonus > 1) {
+        showToast('⚠️ 獎金號格式不正確（需介於 0~1）');
+        return;
+    }
+    try {
+        const res = await fetch(`${BACKEND_URL}/api/merchants`, {
+            method: 'POST',
+            headers: authHeaders(),
+            body: JSON.stringify({ name: name.trim().toUpperCase(), maxBonus }),
+        });
+        if (!res.ok) throw new Error(await res.text());
+        rows.push({ id: nextId++, name: name.trim().toUpperCase(), maxBonus, currentRTP: null, rtpStatus: 'na' });
+        render();
+        showToast('✅ 商戶已新增');
+    } catch (e) {
+        showToast('❌ 新增失敗：' + e.message);
+    }
 }
 
-function deleteRow(id) {
-    rows = rows.filter(r => r.id !== id);
-    render();
-    saveData(true);
+async function deleteRow(id) {
+    const row = rows.find(r => r.id === id);
+    if (!row) return;
+    if (!confirm(`確定刪除商戶 ${row.name}？`)) return;
+    try {
+        const res = await fetch(`${BACKEND_URL}/api/merchants/${row.name}`, {
+            method: 'DELETE', headers: authHeaders()
+        });
+        if (!res.ok) throw new Error(await res.text());
+        rows = rows.filter(r => r.id !== id);
+        render();
+        showToast('🗑 商戶已刪除');
+    } catch (e) {
+        showToast('❌ 刪除失敗：' + e.message);
+    }
 }
 
 /* ──────────────── 更新資料 ──────────────── */
-function updateField(id, field, rawVal) {
+async function updateField(id, field, rawVal) {
     const row = rows.find(r => r.id === id);
     if (!row) return;
     if (field === 'name') {
-        row.name = rawVal.trim() || '未命名';
+        row.name = rawVal.trim().toUpperCase() || '未命名';
     } else {
         const v = parseFloat(rawVal);
         row[field] = isNaN(v) ? 0 : v;
+    }
+    if (row.name && row.name !== '未命名' && row.maxBonus > 0) {
+        try {
+            await fetch(`${BACKEND_URL}/api/merchants`, {
+                method: 'POST',
+                headers: authHeaders(),
+                body: JSON.stringify({ name: row.name, maxBonus: row.maxBonus }),
+            });
+        } catch (e) { showToast('⚠️ 同步失敗：' + e.message); }
     }
     refreshRowCells(id);
     updateStats();
