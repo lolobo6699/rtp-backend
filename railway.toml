@@ -1,5 +1,4 @@
 [deploy]
-startCommand = "node server.js"
 healthcheckPath = "/api/ping"
 healthcheckTimeout = 30
 
