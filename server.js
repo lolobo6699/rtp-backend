@@ -15,6 +15,9 @@ const INITIAL_MERCHANTS = [
 ];
 
 async function runMigration() {
+    await pool.query('CREATE TABLE IF NOT EXISTS rtp_push_log (hour_key TEXT PRIMARY KEY)');
+    await pool.query('CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL)');
+    await pool.query("INSERT INTO settings (key, value) VALUES ('threshold', '0.012') ON CONFLICT (key) DO NOTHING");
     await pool.query(`
         CREATE TABLE IF NOT EXISTS merchants (
             name       TEXT PRIMARY KEY,
@@ -43,6 +46,7 @@ app.all('/api/test-stats',  require('./api/test-stats'));
 app.get('/api/ping',        require('./api/ping'));
 app.all('/api/merchants',   require('./api/merchants'));
 app.all('/api/merchants/:name', require('./api/merchants'));
+app.all('/api/settings',    require('./api/settings'));
 
 const PORT = process.env.PORT || 3000;
 runMigration()

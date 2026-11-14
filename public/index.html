@@ -302,8 +302,8 @@
         <span>差距警示門檻</span>
         <input id="thresholdInput" type="number" step="0.001" min="0" max="1"
             value="0.012" placeholder="0.012"
-            oninput="onThresholdChange(this.value)"
-            onchange="onThresholdChange(this.value)">
+            oninput="applyThreshold(this.value)"
+            onchange="saveThreshold(this.value)">
     </div>
 </div>
 
@@ -559,10 +559,9 @@ async function sendTGNotification(timeStr) {
             const raw  = r.apiRaw || {};
             const diff = (r.maxBonus - r.currentRTP).toFixed(3);
             msg += `\n平台：${r.name}\n`;
-            msg += `投注金额：${fmtNum(raw.bet)}\n`;
-            msg += `奖金：${fmtNum(raw.bonus)}\n`;
-            msg += `返点：${fmtNum(raw.rebate)}\n`;
-            msg += `盈亏：${fmtNum(raw.profit)}\n`;
+            msg += `投注金额：${(raw.bet || 0).toFixed(2)}\n`;
+            msg += `奖金：${(raw.bonus || 0).toFixed(2)}\n`;
+            msg += `返点：${(raw.rebate || 0).toFixed(2)}\n`;
             msg += `RTP：${r.currentRTP.toFixed(3)}\n`;
             msg += `低於觀察RTP：${diff}\n`;
         }
@@ -617,32 +616,56 @@ function scheduleNextFetch() {
 }
 
 /* ──────────────── 門檻變更 ──────────────── */
-function onThresholdChange(val) {
+function applyThreshold(val) {
     const v = parseFloat(val);
-    if (isNaN(v) || v < 0) return;
+    if (isNaN(v) || v <= 0 || v >= 1) return false;
     THRESHOLD = v;
     document.getElementById('statAlertLbl').innerHTML =
         `低於門檻（差距 &lt; ${THRESHOLD}）`;
-    localStorage.setItem('qrtpThreshold', THRESHOLD);
     render();
+    return true;
+}
+
+async function saveThreshold(val) {
+    const input = document.getElementById('thresholdInput');
+    if (!applyThreshold(val)) {
+        showToast('⚠️ 門檻需介於 0~1');
+        await loadThreshold();
+        return;
+    }
+    try {
+        const res = await fetch(`${BACKEND_URL}/api/settings`, {
+            method: 'POST',
+            headers: authHeaders(),
+            body: JSON.stringify({ threshold: THRESHOLD }),
+        });
+        if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'HTTP ' + res.status);
+        showToast(`✅ 門檻已存為 ${THRESHOLD}，推播同步套用`);
+    } catch (e) {
+        showToast('❌ 門檻儲存失敗：' + e.message);
+        await loadThreshold();
+    }
+    input.value = THRESHOLD;
+}
+
+async function loadThreshold() {
+    try {
+        const res = await fetch(`${BACKEND_URL}/api/settings`, { headers: authHeaders() });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const data = await res.json();
+        applyThreshold(data.threshold);
+        document.getElementById('thresholdInput').value = THRESHOLD;
+    } catch (e) {
+        showToast('⚠️ 門檻載入失敗：' + e.message);
+    }
 }
 
 /* ──────────────── 初始化 ──────────────── */
 async function init() {
-    const savedThreshold = localStorage.getItem('qrtpThreshold');
-    if (savedThreshold !== null) {
-        const v = parseFloat(savedThreshold);
-        if (!isNaN(v) && v >= 0) {
-            THRESHOLD = v;
-            document.getElementById('thresholdInput').value = THRESHOLD;
-            document.getElementById('statAlertLbl').innerHTML =
-                `低於門檻（差距 &lt; ${THRESHOLD}）`;
-        }
-    }
-
     const { dateStart, dateEnd } = getDateRange();
     document.getElementById('dateRangeText').textContent = `${dateStart} ～ ${dateEnd}`;
 
+    await loadThreshold();
     await loadMerchantsFromDB();
     render();
     fetchAllRTP();
@@ -656,7 +679,7 @@ function saveData(silent = false) {
 async function clearAll() {
     if (!confirm('確定從資料庫移除所有商戶？此操作無法復原。')) return;
     for (const r of [...rows]) {
-        await fetch(`${BACKEND_URL}/api/merchants/${r.name}`, {
+        await fetch(`${BACKEND_URL}/api/merchants/${encodeURIComponent(r.name)}`, {
             method: 'DELETE', headers: authHeaders()
         });
     }
@@ -682,7 +705,7 @@ async function addRow() {
             headers: authHeaders(),
             body: JSON.stringify({ name: name.trim().toUpperCase(), maxBonus }),
         });
-        if (!res.ok) throw new Error(await res.text());
+        if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'HTTP ' + res.status);
         rows.push({ id: nextId++, name: name.trim().toUpperCase(), maxBonus, currentRTP: null, rtpStatus: 'na' });
         render();
         showToast('✅ 商戶已新增');
@@ -696,10 +719,10 @@ async function deleteRow(id) {
     if (!row) return;
     if (!confirm(`確定刪除商戶 ${row.name}？`)) return;
     try {
-        const res = await fetch(`${BACKEND_URL}/api/merchants/${row.name}`, {
+        const res = await fetch(`${BACKEND_URL}/api/merchants/${encodeURIComponent(row.name)}`, {
             method: 'DELETE', headers: authHeaders()
         });
-        if (!res.ok) throw new Error(await res.text());
+        if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'HTTP ' + res.status);
         rows = rows.filter(r => r.id !== id);
         render();
         showToast('🗑 商戶已刪除');
@@ -711,24 +734,26 @@ async function deleteRow(id) {
 /* ──────────────── 更新資料 ──────────────── */
 async function updateField(id, field, rawVal) {
     const row = rows.find(r => r.id === id);
-    if (!row) return;
-    if (field === 'name') {
-        row.name = rawVal.trim().toUpperCase() || '未命名';
-    } else {
-        const v = parseFloat(rawVal);
-        row[field] = isNaN(v) ? 0 : v;
+    if (!row || field !== 'maxBonus') return;
+    const v = parseFloat(rawVal);
+    if (isNaN(v) || v <= 0 || v > 1) {
+        showToast('⚠️ 獎金號格式不正確（需介於 0~1）');
+        render();
+        return;
     }
-    if (row.name && row.name !== '未命名' && row.maxBonus > 0) {
-        try {
-            await fetch(`${BACKEND_URL}/api/merchants`, {
-                method: 'POST',
-                headers: authHeaders(),
-                body: JSON.stringify({ name: row.name, maxBonus: row.maxBonus }),
-            });
-        } catch (e) { showToast('⚠️ 同步失敗：' + e.message); }
+    try {
+        const res = await fetch(`${BACKEND_URL}/api/merchants`, {
+            method: 'POST',
+            headers: authHeaders(),
+            body: JSON.stringify({ name: row.name, maxBonus: v }),
+        });
+        if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'HTTP ' + res.status);
+        row.maxBonus = v;
+        showToast(`✅ ${row.name} 獎金號已更新`);
+    } catch (e) {
+        showToast('❌ 更新失敗：' + e.message);
     }
-    refreshRowCells(id);
-    updateStats();
+    render();
 }
 
 function refreshRowCells(id) {
@@ -801,11 +826,7 @@ function render() {
         tr.innerHTML = `
             <td class="row-num">${idx + 1}</td>
             <td>
-                <input class="editable name-input"
-                    type="text"
-                    value="${escHtml(row.name)}"
-                    placeholder="商戶名稱"
-                    onchange="updateField(${row.id},'name',this.value)">
+                ${escHtml(row.name)}
             </td>
             <td>
                 <input class="editable"
