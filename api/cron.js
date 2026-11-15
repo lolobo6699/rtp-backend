@@ -13,8 +13,10 @@ module.exports = async function handler(req, res) {
 
     try {
         const result = await runPush();
+        console.log('[cron] 推播結果:', JSON.stringify(result));
         res.status(200).json(result);
     } catch (err) {
+        console.error('[cron] 推播失敗:', err.message);
         res.status(500).json({ error: err.message });
     }
 };

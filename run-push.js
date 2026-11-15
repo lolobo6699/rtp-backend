@@ -1,26 +1,35 @@
-const pool = require('./lib/db');
+// Railway Cron 呼叫此腳本：只負責通知 rtp-backend 推播，抓資料與推 TG 都由 rtp-backend 執行
+const BACKEND_URL = process.env.BACKEND_URL || 'http://rtp-backend.railway.internal:8080';
 
-function fail(label, err) {
-    console.error(label, err && err.stack ? err.stack : err);
-    // 留時間讓 log 寫出去再結束，避免程式卡住擋到下一次排程
-    setTimeout(() => process.exit(1), 1000);
+function finish(code) {
+    // 留時間讓 log 寫出去再結束
+    setTimeout(() => process.exit(code), 500);
 }
 
-process.on('uncaughtException', err => fail('UncaughtException:', err));
-process.on('unhandledRejection', err => fail('UnhandledRejection:', err));
+// 保險：超過 2 分鐘強制結束，避免卡住擋到下一次排程
+setTimeout(() => { console.error('Timeout: 執行超過 120 秒'); finish(1); }, 120000).unref();
 
-// 保險：超過 2 分鐘強制結束
-setTimeout(() => fail('Timeout:', '執行超過 120 秒'), 120000).unref();
+async function main() {
+    const secret = (process.env.CRON_SECRET || '').trim();
+    if (!secret) throw new Error('缺少 CRON_SECRET 環境變數');
 
-const { runPush } = require('./lib/push');
+    let res;
+    try {
+        res = await fetch(`${BACKEND_URL}/api/cron`, {
+            method:  'POST',
+            headers: { Authorization: `Bearer ${secret}` },
+            signal:  AbortSignal.timeout(110000),
+        });
+    } catch (err) {
+        const c = err.cause || {};
+        throw new Error(`連不到 rtp-backend：${[c.code, c.message].filter(Boolean).join(' ') || err.message}`);
+    }
 
-runPush()
-    .then(result => {
-        console.log(JSON.stringify(result));
-        return pool.end();
-    })
-    .catch(err => {
-        process.exitCode = 1;
-        console.error('Push failed:', err.stack || err.message);
-        return pool.end().catch(() => {});
-    });
+    const text = await res.text();
+    if (!res.ok) throw new Error(`rtp-backend 回傳 HTTP ${res.status}：${text.slice(0, 300)}`);
+    console.log(text);
+}
+
+main()
+    .then(() => finish(0))
+    .catch(err => { console.error('Push failed:', err.message); finish(1); });
