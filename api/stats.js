@@ -1,5 +1,6 @@
 const { ProxyAgent, fetch: proxyFetch } = require('undici');
 const crypto = require('crypto');
+const { describeError } = require('../lib/errors');
 
 function verifyToken(token) {
     const secret = process.env.STATS_API_KEY || 'fallback';
@@ -48,6 +49,8 @@ module.exports = async function handler(req, res) {
         }
         res.status(200).json(data);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        const reason = describeError(err);
+        console.error('[stats] 查詢失敗:', reason);
+        res.status(500).json({ error: reason });
     }
 };

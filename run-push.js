@@ -1,4 +1,5 @@
 // Railway Cron 呼叫此腳本：只負責通知 rtp-backend 推播，抓資料與推 TG 都由 rtp-backend 執行
+const { describeError } = require('./lib/errors');
 const BACKEND_URL = process.env.BACKEND_URL || 'http://rtp-backend.railway.internal:8080';
 
 function finish(code) {
@@ -21,15 +22,19 @@ async function main() {
             signal:  AbortSignal.timeout(110000),
         });
     } catch (err) {
-        const c = err.cause || {};
-        throw new Error(`連不到 rtp-backend：${[c.code, c.message].filter(Boolean).join(' ') || err.message}`);
+        throw new Error(`連不到 rtp-backend：${describeError(err)}`);
     }
 
-    const text = await res.text();
+    let text;
+    try {
+        text = await res.text();
+    } catch (err) {
+        throw new Error(`讀取 rtp-backend 回應失敗：${describeError(err)}`);
+    }
     if (!res.ok) throw new Error(`rtp-backend 回傳 HTTP ${res.status}：${text.slice(0, 300)}`);
     console.log(text);
 }
 
 main()
     .then(() => finish(0))
-    .catch(err => { console.error('Push failed:', err.message); finish(1); });
+    .catch(err => { console.error('Push failed:', describeError(err)); finish(1); });

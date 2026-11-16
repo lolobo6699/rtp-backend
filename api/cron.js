@@ -1,4 +1,5 @@
 const { runPush } = require('../lib/push');
+const { describeError } = require('../lib/errors');
 
 module.exports = async function handler(req, res) {
     const cronSecret = (process.env.CRON_SECRET || '').trim();
@@ -16,7 +17,8 @@ module.exports = async function handler(req, res) {
         console.log('[cron] 推播結果:', JSON.stringify(result));
         res.status(200).json(result);
     } catch (err) {
-        console.error('[cron] 推播失敗:', err.message);
-        res.status(500).json({ error: err.message });
+        const reason = describeError(err);
+        console.error('[cron] 推播失敗:', reason);
+        res.status(500).json({ error: reason });
     }
 };
