@@ -286,6 +286,93 @@
             display: none;
         }
         #errorBox ul { padding-left: 18px; margin-top: 4px; }
+
+        /* ── 個人異常推播 ── */
+        .ua-panel {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 3px 12px rgba(0,0,0,.1);
+            margin-top: 22px;
+            overflow: hidden;
+        }
+        .ua-head {
+            background: linear-gradient(135deg, #6b1a3a 0%, #9f2d5c 100%);
+            color: #fff;
+            padding: 14px 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .ua-head h2 { font-size: 1.1em; letter-spacing: .5px; }
+        .ua-head .sub { font-size: 0.8em; opacity: .8; }
+        .ua-switch { margin-left: auto; display: flex; align-items: center; gap: 8px; font-size: 0.88em; cursor: pointer; }
+        .ua-switch input { width: 18px; height: 18px; cursor: pointer; }
+        .ua-notice {
+            background: #fff8e6;
+            border-bottom: 1px solid #f3dca0;
+            color: #8a6100;
+            padding: 9px 20px;
+            font-size: 0.83em;
+            display: none;
+        }
+        .ua-grid { display: grid; grid-template-columns: 110px 1fr; border-bottom: 1px solid #e8ecf0; }
+        .ua-grid > .k {
+            background: #f1f4f9;
+            color: #555;
+            font-size: 0.86em;
+            font-weight: bold;
+            padding: 12px 14px;
+            border-top: 1px solid #e8ecf0;
+            display: flex;
+            align-items: center;
+        }
+        .ua-grid > .v {
+            padding: 9px 14px;
+            border-top: 1px solid #e8ecf0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            font-size: 0.88em;
+        }
+        .ua-grid select, .ua-grid input[type=number] {
+            font-family: inherit;
+            font-size: 0.95em;
+            padding: 6px 10px;
+            border: 1px solid #cdd6e2;
+            border-radius: 6px;
+            min-width: 160px;
+        }
+        .ua-grid select:focus, .ua-grid input[type=number]:focus { outline: none; border-color: #9f2d5c; box-shadow: 0 0 0 2px rgba(159,45,92,.15); }
+        .ua-check { display: inline-flex; align-items: center; gap: 5px; cursor: pointer; }
+        .ua-date-btn {
+            border: 1px solid #cdd6e2;
+            background: #fff;
+            color: #444;
+            border-radius: 6px;
+            padding: 6px 16px;
+            font-family: inherit;
+            font-size: 0.92em;
+            cursor: pointer;
+        }
+        .ua-date-btn.active { background: #9f2d5c; border-color: #9f2d5c; color: #fff; }
+        .ua-hint { color: #999; font-size: 0.9em; }
+        .ua-actions { padding: 14px 20px; display: flex; gap: 10px; flex-wrap: wrap; }
+        .btn-ua { background: #9f2d5c; color: #fff; }
+        .btn-ua:hover:not(:disabled) { background: #6b1a3a; }
+        .btn-ua-ghost { background: #fff; color: #9f2d5c; border: 1px solid #9f2d5c; }
+        .btn-ua-ghost:hover:not(:disabled) { background: #fbeef3; }
+        #uaResult { padding: 0 20px 18px; font-size: 0.86em; }
+        #uaResult table thead tr { background: #9f2d5c; }
+        #uaResult .ua-sum { color: #666; margin-bottom: 8px; }
+        #uaResult .ua-err { color: #c0392b; }
+        @media (max-width: 640px) {
+            body { padding: 12px; }
+            .ua-grid { grid-template-columns: 1fr; }
+            .ua-grid > .k { padding-bottom: 4px; }
+            #uaResult { overflow-x: auto; }
+        }
     </style>
 </head>
 <body>
@@ -363,6 +450,39 @@
         </thead>
         <tbody id="tbody"></tbody>
     </table>
+</div>
+
+<!-- ── 個人異常推播 ── -->
+<div class="ua-panel">
+    <div class="ua-head">
+        <div>
+            <h2>個人異常推播</h2>
+            <div class="sub">用戶 RTP 與遊戲盈虧同時達到門檻 → 推播 TG（時段同上：13:00、22:00、03:15）</div>
+        </div>
+        <label class="ua-switch"><input type="checkbox" id="uaEnabled"> 啟用</label>
+    </div>
+    <div class="ua-notice" id="uaNotice">⚠ 個人統計資料來源尚未設定：可以先填好設定並儲存，等新 API 接上後才會開始推播。</div>
+    <div class="ua-grid">
+        <div class="k">彩類</div>
+        <div class="v"><select id="uaClass" onchange="renderUaLotteries([])"></select></div>
+        <div class="k">彩種</div>
+        <div class="v" id="uaLotteries"></div>
+        <div class="k">日期</div>
+        <div class="v">
+            <span id="uaDateBtns"></span>
+            <span class="ua-hint" id="uaDateText"></span>
+        </div>
+        <div class="k">RTP 門檻</div>
+        <div class="v"><input type="number" id="uaRtp" step="0.01" min="0" placeholder="例如 1.2"> <span class="ua-hint">RTP ≥ 此值</span></div>
+        <div class="k">盈虧門檻</div>
+        <div class="v"><input type="number" id="uaProfit" step="1000" min="0" placeholder="例如 300000"> <span class="ua-hint">個人遊戲盈虧 ≥ 此值</span></div>
+    </div>
+    <div class="ua-actions">
+        <button class="btn btn-ua" onclick="saveUserAlert()">💾 儲存設定</button>
+        <button class="btn btn-ua-ghost" onclick="runUserAlert('preview')">🔍 預覽超標用戶</button>
+        <button class="btn btn-ua-ghost" onclick="runUserAlert('test')">📨 測試推播</button>
+    </div>
+    <div id="uaResult"></div>
 </div>
 
 </div><!-- end mainApp -->
@@ -660,11 +780,118 @@ async function loadThreshold() {
     }
 }
 
+/* ──────────────── 個人異常推播 ──────────────── */
+let UA = { options: {}, dateModes: {}, dateMode: 'today' };
+
+function uaYmd(d) {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+function uaRange(mode) {
+    const now = new Date(), day = 86400000, today = uaYmd(now);
+    if (mode === 'yesterday') { const y = uaYmd(new Date(now - day)); return [y, y]; }
+    if (mode === 'week') return [uaYmd(new Date(now - ((now.getDay() + 6) % 7) * day)), today];
+    if (mode === 'month') return [today.slice(0, 8) + '01', today];
+    return [today, today];
+}
+
+function renderUaLotteries(selected) {
+    const cls = document.getElementById('uaClass').value;
+    const list = UA.options[cls] || [];
+    if (!selected.length && list.length) selected = [list[0]];
+    document.getElementById('uaLotteries').innerHTML = list.map(l =>
+        `<label class="ua-check"><input type="checkbox" value="${escHtml(l)}" ${selected.includes(l) ? 'checked' : ''}> ${escHtml(l)}</label>`
+    ).join('');
+}
+
+function setUaDate(mode) {
+    UA.dateMode = mode;
+    document.querySelectorAll('.ua-date-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
+    const [s, e] = uaRange(mode);
+    document.getElementById('uaDateText').textContent = s === e ? `（${s}）` : `（${s} ～ ${e}）`;
+}
+
+function uaFormValues() {
+    return {
+        enabled:      document.getElementById('uaEnabled').checked,
+        lotteryClass: document.getElementById('uaClass').value,
+        lotteries:    [...document.querySelectorAll('#uaLotteries input:checked')].map(i => i.value),
+        dateMode:     UA.dateMode,
+        rtpMin:       document.getElementById('uaRtp').value,
+        profitMin:    document.getElementById('uaProfit').value,
+    };
+}
+
+async function loadUserAlert() {
+    try {
+        const res = await fetch(`${BACKEND_URL}/api/user-alert`, { headers: authHeaders() });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'HTTP ' + res.status);
+        UA.options = data.options;
+        UA.dateModes = data.dateModes;
+        const c = data.config;
+        document.getElementById('uaClass').innerHTML = Object.keys(UA.options)
+            .map(k => `<option value="${escHtml(k)}">${escHtml(k)}</option>`).join('');
+        document.getElementById('uaClass').value = c.lotteryClass;
+        renderUaLotteries(c.lotteries || []);
+        document.getElementById('uaDateBtns').innerHTML = Object.entries(UA.dateModes)
+            .map(([k, v]) => `<button class="ua-date-btn" data-mode="${k}" onclick="setUaDate('${k}')">${v}</button>`).join(' ');
+        setUaDate(c.dateMode);
+        document.getElementById('uaEnabled').checked = !!c.enabled;
+        document.getElementById('uaRtp').value = c.rtpMin ?? '';
+        document.getElementById('uaProfit').value = c.profitMin ?? '';
+        document.getElementById('uaNotice').style.display = data.sourceReady ? 'none' : 'block';
+    } catch (e) {
+        showToast('⚠️ 個人推播設定載入失敗：' + e.message);
+    }
+}
+
+async function saveUserAlert() {
+    try {
+        const res = await fetch(`${BACKEND_URL}/api/user-alert`, {
+            method: 'POST', headers: authHeaders(), body: JSON.stringify(uaFormValues()),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'HTTP ' + res.status);
+        showToast(data.config.enabled ? '✅ 已儲存，排程時段會推播' : '✅ 已儲存（目前未啟用）');
+    } catch (e) {
+        showToast('❌ ' + e.message);
+    }
+}
+
+async function runUserAlert(action) {
+    const box = document.getElementById('uaResult');
+    if (action === 'test' && !confirm('會用目前畫面上的設定抓資料，並把超標用戶推到 TG 群組，確定？')) return;
+    box.innerHTML = '<div class="ua-sum">查詢中…</div>';
+    try {
+        const res = await fetch(`${BACKEND_URL}/api/user-alert/${action}`, {
+            method: 'POST', headers: authHeaders(), body: JSON.stringify(uaFormValues()),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'HTTP ' + res.status);
+        const range = data.dateStart === data.dateEnd ? data.dateStart : `${data.dateStart} ～ ${data.dateEnd}`;
+        let sum = `${range}｜用戶資料 ${data.total} 筆，超標 <b>${data.alerts.length}</b> 筆`;
+        if (action === 'test') sum += data.sent ? `｜已推播 ${data.sent} 則到 TG` : '｜沒有超標用戶，未推播';
+        const fmt = n => Number(n).toLocaleString('en-US', { maximumFractionDigits: 3 });
+        box.innerHTML = `<div class="ua-sum">${sum}</div>` + (data.alerts.length ? `
+            <div class="table-wrap"><table><thead><tr>
+                <th>異常專案</th><th>用戶名稱</th><th>彩種</th><th>原始銷量</th><th>派獎</th><th>返點</th><th>遊戲盈虧</th><th>中獎率</th><th>RTP</th>
+            </tr></thead><tbody>${data.alerts.map(r => `<tr class="row-alert">
+                <td>${escHtml(r.project)}</td><td>${escHtml(r.username)}</td><td>${escHtml(r.lottery)}</td>
+                <td>${fmt(r.sales)}</td><td>${fmt(r.payout)}</td><td>${fmt(r.rebate)}</td>
+                <td><b>${fmt(r.profit)}</b></td><td>${r.winRate == null ? '—' : r.winRate.toFixed(3) + '%'}</td><td><b>${r.rtp.toFixed(3)}</b></td>
+            </tr>`).join('')}</tbody></table></div>` : '');
+        if (action === 'test') showToast(data.sent ? '📨 TG 推播成功' : 'ℹ️ 沒有超標用戶');
+    } catch (e) {
+        box.innerHTML = `<div class="ua-sum ua-err">❌ ${escHtml(e.message)}</div>`;
+    }
+}
+
 /* ──────────────── 初始化 ──────────────── */
 async function init() {
     const { dateStart, dateEnd } = getDateRange();
     document.getElementById('dateRangeText').textContent = `${dateStart} ～ ${dateEnd}`;
 
+    loadUserAlert();
     await loadThreshold();
     await loadMerchantsFromDB();
     render();

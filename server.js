@@ -47,6 +47,8 @@ app.get('/api/ping',        require('./api/ping'));
 app.all('/api/merchants',   require('./api/merchants'));
 app.all('/api/merchants/:name', require('./api/merchants'));
 app.all('/api/settings',    require('./api/settings'));
+app.all('/api/user-alert',  require('./api/user-alert'));
+app.all('/api/user-alert/:action', require('./api/user-alert'));
 
 const PORT = process.env.PORT || 3000;
 runMigration()

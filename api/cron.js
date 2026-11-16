@@ -1,4 +1,5 @@
 const { runPush } = require('../lib/push');
+const { runUserAlert } = require('../lib/user-alert');
 const { describeError } = require('../lib/errors');
 
 module.exports = async function handler(req, res) {
@@ -12,13 +13,28 @@ module.exports = async function handler(req, res) {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
-    try {
-        const result = await runPush();
-        console.log('[cron] 推播結果:', JSON.stringify(result));
-        res.status(200).json(result);
-    } catch (err) {
-        const reason = describeError(err);
-        console.error('[cron] 推播失敗:', reason);
-        res.status(500).json({ error: reason });
+    // 平台 RTP 推播與個人異常推播同時跑，互不影響
+    const [platform, user] = await Promise.allSettled([runPush(), runUserAlert()]);
+    const result = {};
+    let failed = false;
+
+    if (platform.status === 'fulfilled') {
+        console.log('[cron] 推播結果:', JSON.stringify(platform.value));
+        result.platform = platform.value;
+    } else {
+        failed = true;
+        result.platform = { error: describeError(platform.reason) };
+        console.error('[cron] 推播失敗:', result.platform.error);
     }
+
+    if (user.status === 'fulfilled') {
+        console.log('[cron] 個人推播結果:', JSON.stringify(user.value));
+        result.user = user.value;
+    } else {
+        failed = true;
+        result.user = { error: describeError(user.reason) };
+        console.error('[cron] 個人推播失敗:', result.user.error);
+    }
+
+    res.status(failed ? 500 : 200).json(result);
 };
