@@ -32,6 +32,7 @@ module.exports = async function handler(req, res) {
                 lotteries:   await ua.getLotteryOptions(),
                 dateModes:   ua.DATE_MODES,
                 sourceReady: ua.isConfigured(),
+                keyInfo:     ua.keyInfo(),
             });
         }
 

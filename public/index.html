@@ -506,6 +506,10 @@
         <div class="k">盈虧門檻</div>
         <div class="v"><input type="number" id="uaProfit" step="1000" min="0" placeholder="例如 300000"> <span class="ua-hint">個人遊戲盈虧 ≥ 此值</span></div>
     </div>
+    <div class="ua-grid">
+        <div class="k">API 金鑰</div>
+        <div class="v"><span class="ua-hint" id="uaKeyInfo">—</span></div>
+    </div>
     <div class="ua-actions">
         <button class="btn btn-ua" onclick="saveUserAlert()">💾 儲存設定</button>
         <button class="btn btn-ua-ghost" onclick="runUserAlert('preview')">🔍 預覽超標用戶</button>
@@ -903,6 +907,9 @@ async function loadUserAlert() {
         document.getElementById('uaRtp').value = c.rtpMin ?? '';
         document.getElementById('uaProfit').value = c.profitMin ?? '';
         document.getElementById('uaNotice').style.display = data.sourceReady ? 'none' : 'block';
+        const k = data.keyInfo || {};
+        document.getElementById('uaKeyInfo').textContent =
+            `使用 ${k.source || '—'}，長度 ${k.length ?? '—'} 字` + (k.cleaned ? '（原值前後有空白或引號，已自動去除）' : '');
     } catch (e) {
         showToast('⚠️ 個人推播設定載入失敗：' + e.message);
     }
