@@ -345,7 +345,28 @@
             min-width: 160px;
         }
         .ua-grid select:focus, .ua-grid input[type=number]:focus { outline: none; border-color: #9f2d5c; box-shadow: 0 0 0 2px rgba(159,45,92,.15); }
-        .ua-check { display: inline-flex; align-items: center; gap: 5px; cursor: pointer; }
+        .ua-check { display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 5px 4px; border-radius: 4px; }
+        .ua-check:hover { background: #fbeef3; }
+        .ua-ms { position: relative; }
+        .ua-ms-btn {
+            min-width: 240px; max-width: 100%;
+            display: flex; justify-content: space-between; gap: 10px;
+            font-family: inherit; font-size: 0.95em; text-align: left;
+            padding: 6px 10px; border: 1px solid #cdd6e2; border-radius: 6px; background: #fff; cursor: pointer;
+        }
+        .ua-ms-btn span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .ua-ms-panel {
+            display: none; position: absolute; z-index: 50; top: calc(100% + 4px); left: 0;
+            width: 280px; max-width: calc(100vw - 40px);
+            background: #fff; border: 1px solid #cdd6e2; border-radius: 8px;
+            box-shadow: 0 6px 20px rgba(0,0,0,.15); padding: 8px;
+        }
+        .ua-ms.open .ua-ms-panel { display: block; }
+        .ua-ms-panel input[type=text] {
+            width: 100%; font-family: inherit; padding: 6px 8px; margin-bottom: 6px;
+            border: 1px solid #cdd6e2; border-radius: 5px;
+        }
+        #uaLotteries { max-height: 240px; overflow-y: auto; }
         .ua-date-btn {
             border: 1px solid #cdd6e2;
             background: #fff;
@@ -463,10 +484,18 @@
     </div>
     <div class="ua-notice" id="uaNotice">⚠ 個人統計資料來源尚未設定：可以先填好設定並儲存，等新 API 接上後才會開始推播。</div>
     <div class="ua-grid">
-        <div class="k">彩類</div>
-        <div class="v"><select id="uaClass" onchange="renderUaLotteries([])"></select></div>
         <div class="k">彩種</div>
-        <div class="v" id="uaLotteries"></div>
+        <div class="v">
+            <div class="ua-ms" id="uaMs">
+                <button type="button" class="ua-ms-btn" onclick="toggleUaMs(event)"><span id="uaMsText">請選擇</span><span>▾</span></button>
+                <div class="ua-ms-panel">
+                    <input type="text" id="uaMsSearch" placeholder="搜尋彩種" oninput="filterUaMs(this.value)">
+                    <div id="uaLotteries"></div>
+                </div>
+            </div>
+            <button type="button" class="ua-date-btn" id="uaRefreshLot" onclick="refreshUaLotteries()">🔄 更新彩種清單</button>
+            <span class="ua-hint">可複選；清單來自統計站實際資料</span>
+        </div>
         <div class="k">日期</div>
         <div class="v">
             <span id="uaDateBtns"></span>
@@ -781,7 +810,7 @@ async function loadThreshold() {
 }
 
 /* ──────────────── 個人異常推播 ──────────────── */
-let UA = { options: {}, dateModes: {}, dateMode: 'today' };
+let UA = { lotteries: [], selected: [], dateModes: {}, dateMode: 'today' };
 
 function uaYmd(d) {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -794,13 +823,50 @@ function uaRange(mode) {
     return [today, today];
 }
 
-function renderUaLotteries(selected) {
-    const cls = document.getElementById('uaClass').value;
-    const list = UA.options[cls] || [];
-    if (!selected.length && list.length) selected = [list[0]];
-    document.getElementById('uaLotteries').innerHTML = list.map(l =>
-        `<label class="ua-check"><input type="checkbox" value="${escHtml(l)}" ${selected.includes(l) ? 'checked' : ''}> ${escHtml(l)}</label>`
-    ).join('');
+function renderUaLotteries() {
+    const all = [...new Set([...UA.selected, ...UA.lotteries])];
+    document.getElementById('uaLotteries').innerHTML = all.map(l =>
+        `<label class="ua-check"><input type="checkbox" value="${escHtml(l)}" ${UA.selected.includes(l) ? 'checked' : ''} onchange="onUaLotteryChange()"> ${escHtml(l)}</label>`
+    ).join('') || '<div class="ua-hint">尚無彩種，請按「更新彩種清單」</div>';
+    updateUaMsText();
+}
+function onUaLotteryChange() {
+    UA.selected = [...document.querySelectorAll('#uaLotteries input:checked')].map(i => i.value);
+    updateUaMsText();
+}
+function updateUaMsText() {
+    document.getElementById('uaMsText').textContent = UA.selected.length ? UA.selected.join('、') : '請選擇';
+}
+function toggleUaMs(e) {
+    e.stopPropagation();
+    document.getElementById('uaMs').classList.toggle('open');
+}
+function filterUaMs(q) {
+    document.querySelectorAll('#uaLotteries .ua-check').forEach(el => {
+        el.style.display = el.textContent.includes(q.trim()) ? '' : 'none';
+    });
+}
+document.addEventListener('click', e => {
+    const ms = document.getElementById('uaMs');
+    if (ms && !ms.contains(e.target)) ms.classList.remove('open');
+});
+
+async function refreshUaLotteries() {
+    const btn = document.getElementById('uaRefreshLot');
+    btn.disabled = true; btn.textContent = '更新中…（查最近 30 天，可能需要 1～3 分鐘）';
+    try {
+        const res = await fetch(`${BACKEND_URL}/api/user-alert/lotteries`, { method: 'POST', headers: authHeaders() });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'HTTP ' + res.status);
+        const added = data.options.length - UA.lotteries.length;
+        UA.lotteries = data.options;
+        renderUaLotteries();
+        showToast(`✅ 彩種清單已更新（共 ${data.options.length} 個${added > 0 ? `，新增 ${added} 個` : ''}）` +
+            (data.failed.length ? `，查詢失敗：${data.failed.map(f => f.platform).join('、')}` : ''));
+    } catch (e) {
+        showToast('❌ 更新彩種清單失敗：' + e.message);
+    }
+    btn.disabled = false; btn.textContent = '🔄 更新彩種清單';
 }
 
 function setUaDate(mode) {
@@ -813,8 +879,7 @@ function setUaDate(mode) {
 function uaFormValues() {
     return {
         enabled:      document.getElementById('uaEnabled').checked,
-        lotteryClass: document.getElementById('uaClass').value,
-        lotteries:    [...document.querySelectorAll('#uaLotteries input:checked')].map(i => i.value),
+        lotteries:    UA.selected,
         dateMode:     UA.dateMode,
         rtpMin:       document.getElementById('uaRtp').value,
         profitMin:    document.getElementById('uaProfit').value,
@@ -826,13 +891,11 @@ async function loadUserAlert() {
         const res = await fetch(`${BACKEND_URL}/api/user-alert`, { headers: authHeaders() });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'HTTP ' + res.status);
-        UA.options = data.options;
+        UA.lotteries = data.lotteries;
         UA.dateModes = data.dateModes;
         const c = data.config;
-        document.getElementById('uaClass').innerHTML = Object.keys(UA.options)
-            .map(k => `<option value="${escHtml(k)}">${escHtml(k)}</option>`).join('');
-        document.getElementById('uaClass').value = c.lotteryClass;
-        renderUaLotteries(c.lotteries || []);
+        UA.selected = c.lotteries || [];
+        renderUaLotteries();
         document.getElementById('uaDateBtns').innerHTML = Object.entries(UA.dateModes)
             .map(([k, v]) => `<button class="ua-date-btn" data-mode="${k}" onclick="setUaDate('${k}')">${v}</button>`).join(' ');
         setUaDate(c.dateMode);
@@ -870,13 +933,17 @@ async function runUserAlert(action) {
         if (!res.ok) throw new Error(data.error || 'HTTP ' + res.status);
         const range = data.dateStart === data.dateEnd ? data.dateStart : `${data.dateStart} ～ ${data.dateEnd}`;
         let sum = `${range}｜用戶資料 ${data.total} 筆，超標 <b>${data.alerts.length}</b> 筆`;
-        if (action === 'test') sum += data.sent ? `｜已推播 ${data.sent} 則到 TG` : '｜沒有超標用戶，未推播';
+        if (data.failed && data.failed.length) {
+            sum += `<br><span class="ua-err">⚠ 查詢失敗、未納入：${data.failed.map(f => escHtml(f.platform + (f.error ? `（${f.error}）` : ''))).join('、')}</span>`;
+        }
+        if (action === 'test') sum += data.sent ? `<br>已推播 ${data.sent} 則到 TG` : '<br>沒有需要推播的內容';
+        if (data.lotteries) { UA.lotteries = data.lotteries; renderUaLotteries(); }
         const fmt = n => Number(n).toLocaleString('en-US', { maximumFractionDigits: 3 });
         box.innerHTML = `<div class="ua-sum">${sum}</div>` + (data.alerts.length ? `
             <div class="table-wrap"><table><thead><tr>
                 <th>異常專案</th><th>用戶名稱</th><th>彩種</th><th>原始銷量</th><th>派獎</th><th>返點</th><th>遊戲盈虧</th><th>中獎率</th><th>RTP</th>
             </tr></thead><tbody>${data.alerts.map(r => `<tr class="row-alert">
-                <td>${escHtml(r.project)}</td><td>${escHtml(r.username)}</td><td>${escHtml(r.lottery)}</td>
+                <td>${escHtml(r.platform)}</td><td>${escHtml(r.username)}</td><td>${escHtml(r.lottery)}</td>
                 <td>${fmt(r.sales)}</td><td>${fmt(r.payout)}</td><td>${fmt(r.rebate)}</td>
                 <td><b>${fmt(r.profit)}</b></td><td>${r.winRate == null ? '—' : r.winRate.toFixed(3) + '%'}</td><td><b>${r.rtp.toFixed(3)}</b></td>
             </tr>`).join('')}</tbody></table></div>` : '');

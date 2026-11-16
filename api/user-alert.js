@@ -1,4 +1,4 @@
-// 後台：個人異常推播的設定、預覽、測試推播
+// 後台：個人異常推播的設定、彩種清單、預覽、測試推播
 const crypto = require('crypto');
 const { describeError } = require('../lib/errors');
 const ua = require('../lib/user-alert');
@@ -29,7 +29,7 @@ module.exports = async function handler(req, res) {
         if (req.method === 'GET' && !action) {
             return res.json({
                 config:      await ua.getConfig(),
-                options:     ua.LOTTERY_OPTIONS,
+                lotteries:   await ua.getLotteryOptions(),
                 dateModes:   ua.DATE_MODES,
                 sourceReady: ua.isConfigured(),
             });
@@ -42,17 +42,24 @@ module.exports = async function handler(req, res) {
             return res.json({ ok: true, config });
         }
 
+        if (!ua.isConfigured() && req.method === 'POST') {
+            return res.status(400).json({ error: '個人統計資料來源尚未設定' });
+        }
+
+        if (req.method === 'POST' && action === 'lotteries') {
+            return res.json(await ua.refreshLotteryOptions());
+        }
+
         if (req.method === 'POST' && (action === 'preview' || action === 'test')) {
             const { config, error } = checkForRun(req.body);
             if (error) return res.status(400).json({ error });
-            if (!ua.isConfigured()) return res.status(400).json({ error: '個人統計資料來源尚未設定，API 接上後才能使用' });
             const result = await ua.findAlerts(config);
+            const out = { ...result, lotteries: await ua.getLotteryOptions() };
             if (action === 'test') {
-                if (result.alerts.length === 0) return res.json({ ...result, sent: 0 });
-                const sent = await ua.sendBlocks(result.alerts.map(r => ua.formatBlock(r, result.dateStart, result.dateEnd)));
-                return res.json({ ...result, sent });
+                const blocks = ua.buildBlocks(result);
+                out.sent = blocks.length ? await ua.sendBlocks(blocks) : 0;
             }
-            return res.json(result);
+            return res.json(out);
         }
 
         res.status(405).json({ error: 'Method not allowed' });
