@@ -857,7 +857,7 @@ document.addEventListener('click', e => {
 
 async function refreshUaLotteries() {
     const btn = document.getElementById('uaRefreshLot');
-    btn.disabled = true; btn.textContent = '更新中…（查最近 30 天，可能需要 1～3 分鐘）';
+    btn.disabled = true; btn.textContent = '更新中…（查最近 7 天，約需 1～2 分鐘）';
     try {
         const res = await fetch(`${BACKEND_URL}/api/user-alert/lotteries`, { method: 'POST', headers: authHeaders() });
         const data = await res.json();

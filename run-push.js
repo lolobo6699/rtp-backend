@@ -7,8 +7,9 @@ function finish(code) {
     setTimeout(() => process.exit(code), 500);
 }
 
-// 保險：超過 3 分鐘強制結束，避免卡住擋到下一次排程（rtp-backend 內部重試最長約 150 秒）
-setTimeout(() => { console.error('Timeout: 執行超過 180 秒'); finish(1); }, 180000).unref();
+// 保險：超過 290 秒強制結束，避免卡住擋到下一次排程（間隔 5 分鐘）
+// rtp-backend 平台推播內部重試最長約 150 秒；個人推播逐平台查詢，平台慢時可能 2～4 分鐘
+setTimeout(() => { console.error('Timeout: 執行超過 290 秒'); finish(1); }, 290000).unref();
 
 async function main() {
     const secret = (process.env.CRON_SECRET || '').trim();
@@ -19,7 +20,7 @@ async function main() {
         res = await fetch(`${BACKEND_URL}/api/cron`, {
             method:  'POST',
             headers: { Authorization: `Bearer ${secret}` },
-            signal:  AbortSignal.timeout(170000),
+            signal:  AbortSignal.timeout(280000),
         });
     } catch (err) {
         throw new Error(`連不到 rtp-backend：${describeError(err)}`);
