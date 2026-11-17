@@ -948,11 +948,11 @@ async function runUserAlert(action) {
         const fmt = n => Number(n).toLocaleString('en-US', { maximumFractionDigits: 3 });
         box.innerHTML = `<div class="ua-sum">${sum}</div>` + (data.alerts.length ? `
             <div class="table-wrap"><table><thead><tr>
-                <th>異常專案</th><th>用戶名稱</th><th>彩種</th><th>原始銷量</th><th>派獎</th><th>返點</th><th>遊戲盈虧</th><th>中獎率</th><th>RTP</th>
+                <th>異常專案</th><th>用戶名稱</th><th>彩種</th><th>原始銷量</th><th>派獎</th><th>返點</th><th>遊戲盈虧</th><th>RTP</th>
             </tr></thead><tbody>${data.alerts.map(r => `<tr class="row-alert">
                 <td>${escHtml(r.platform)}</td><td>${escHtml(r.username)}</td><td>${escHtml(r.lottery)}</td>
                 <td>${fmt(r.sales)}</td><td>${fmt(r.payout)}</td><td>${fmt(r.rebate)}</td>
-                <td><b>${fmt(r.profit)}</b></td><td>${r.winRate == null ? '—' : r.winRate.toFixed(3) + '%'}</td><td><b>${r.rtp.toFixed(3)}</b></td>
+                <td><b>${fmt(r.profit)}</b></td><td><b>${r.rtp.toFixed(3)}</b></td>
             </tr>`).join('')}</tbody></table></div>` : '');
         if (action === 'test') showToast(data.sent ? '📨 TG 推播成功' : 'ℹ️ 沒有超標用戶');
     } catch (e) {
